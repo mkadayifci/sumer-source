@@ -61,6 +61,11 @@
 			<location>/Users/mkadayifci/source/sumer-source/sumer-library/hal/src/context_switch.s</location>
 		</link>
 		<link>
+			<name>HAL/gp_timer.c</name>
+			<type>1</type>
+			<location>/Users/mkadayifci/source/sumer-source/sumer-library/hal/src/gp_timer.c</location>
+		</link>
+		<link>
 			<name>HAL/miscutil.c</name>
 			<type>1</type>
 			<location>/Users/mkadayifci/source/sumer-source/sumer-library/hal/src/miscutil.c</location>

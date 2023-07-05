@@ -20,9 +20,9 @@
 */ 
 /* Includes ------------------------------------------------------------------*/
 
-#include "../../../Lib/hal/inc/gp_timer.h"
+#include "../../../sumer-library/hal/inc/gp_timer.h"
 
-#include "../../../Lib/hal/inc/clock.h"
+#include "../../../sumer-library/hal/inc/clock.h"
 
 /*---------------------------------------------------------------------------*/
 

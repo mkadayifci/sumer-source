@@ -25,10 +25,10 @@
 #endif 
 
 /* Number of services requests from the beacon demo */
-#define NUM_APP_GATT_SERVICES 0
+#define NUM_APP_GATT_SERVICES 1
 
 /* Number of attributes requests from the beacon demo */
-#define NUM_APP_GATT_ATTRIBUTES 0
+#define NUM_APP_GATT_ATTRIBUTES 5
 
 /* Number of links needed for the demo: 1
  * Only 1 the default
@@ -62,7 +62,7 @@
 #define MAX_CHAR_LEN(a,b) ((a) > (b) )? (a) : (b)
 
 /* Application characteristics maximum lenght */
-#define _MAX_ATT_SIZE	(0) 
+#define _MAX_ATT_SIZE	(20)
 
 /* Set supported max value for attribute size: it is the biggest attribute size enabled by the application. */
 #define APP_MAX_ATT_SIZE	  MAX_CHAR_LEN(OTA_MAX_ATT_SIZE,  _MAX_ATT_SIZE)
@@ -77,7 +77,7 @@
 #endif
    
 /* Array size for the attribute value */
-#define ATT_VALUE_ARRAY_SIZE    (44 + OTA_ATT_VALUE_ARRAY_SIZE) /* Only GATT & GAP default services, NUM_LINKS = 1 */
+#define ATT_VALUE_ARRAY_SIZE    (44 + 80 + OTA_ATT_VALUE_ARRAY_SIZE) /* Only GATT & GAP default services, NUM_LINKS = 1 */
 
 /* Flash security database size */
 #define FLASH_SEC_DB_SIZE       (0x400)
@@ -190,5 +190,7 @@ const BlueNRG_Stack_Initialization_t BlueNRG_Stack_Init_params = {
     MAX_ATT_MTU,
     CONFIG_TABLE,
 };
+
+
 
 #endif // _BEACON_CONFIG_H_

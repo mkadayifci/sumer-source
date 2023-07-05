@@ -66,6 +66,8 @@
                                     <listOptionValue builtIn="false" value="BLUENRG2_DEVICE"/>
                                     									
                                     <listOptionValue builtIn="false" value="USER_BUTTON=BUTTON_1"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="BLE_STACK_CONFIGURATION=BLE_STACK_FULL_CONFIGURATION"/>
                                     								
                                 </option>
                                 								
