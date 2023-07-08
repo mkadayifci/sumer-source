@@ -227,9 +227,10 @@ int main(void)
 #endif /* ST_USE_OTA_SERVICE_MANAGER_APPLICATION */
   
   /* Start Beacon Non Connectable Mode*/
-
+  BTLE_StackTick();
+  APP_Tick();
   
-  printf("BlueNRG-1,2 BLE Beacon Application (version: %s)\r\n", BLE_BEACON_VERSION_STRING); 
+  //printf("BlueNRG-1,2 BLE Beacon Application (version: %s)\r\n", BLE_BEACON_VERSION_STRING);
   while(1) 
   {
     /* BlueNRG-1,2 stack tick */

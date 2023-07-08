@@ -59,6 +59,8 @@
                                     									
                                     <listOptionValue builtIn="false" value="HS_SPEED_XTAL=HS_SPEED_XTAL_32MHZ"/>
                                     									
+                                    <listOptionValue builtIn="false" value="SERVER=1"/>
+                                    									
                                     <listOptionValue builtIn="false" value="LS_SOURCE=LS_SOURCE_INTERNAL_RO"/>
                                     									
                                     <listOptionValue builtIn="false" value="SMPS_INDUCTOR=SMPS_INDUCTOR_NONE"/>
@@ -177,7 +179,7 @@
                     					
                     <sourceEntries>
                         						
-                        <entry excluding="OTA" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
+                        <entry excluding="OTA" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
                         					
                     </sourceEntries>
                     				

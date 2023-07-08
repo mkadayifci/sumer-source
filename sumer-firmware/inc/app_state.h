@@ -1,8 +1,8 @@
-/******************** (C) COPYRIGHT 2015 STMicroelectronics ********************
-* File Name          : app_state.h
-* Author             : AMS - VMA, RF Application Team
+/******************** (C) COPYRIGHT 2014 STMicroelectronics ********************
+* File Name          : app.h
+* Author             : AMS - AAS, RF Application Team
 * Version            : V1.0.0
-* Date               : 21-Sept-2015
+* Date               : 14-March-2014
 * Description        : Header file wich contains variable used for application.
 ********************************************************************************
 * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
@@ -22,46 +22,33 @@
 
 
 /* Exported variables ------------------------------------------------------- */  
-/** 
-  * @brief  Device Role
-  */      
-#define MASTER_ROLE 0x00
-#define SLAVE_ROLE 0x01
- 
-/** 
-  * @brief  Discovery States
- */  
-#define INIT                      0x00
-#define START_DISCOVERY_PROC      0x01
-#define WAIT_EVENT                0x02
-#define WAIT_TIMER_EXPIRED        0x04
-#define DO_DIRECT_CONNECTION_PROC 0x08
-#define ENTER_DISCOVERY_MODE      0x10
-#define DO_TERMINATE_GAP_PROC     0x20
-#define DO_NON_DISCOVERABLE_MODE  0x40
-#define DISCOVERY_ERROR           0x80
- 
+
 /** 
   * @brief  Variable which contains some flags useful for application
   */ 
 extern volatile int app_flags;
 
-/** 
-  * @brief  Flags for application
-  */ 
-#define SET_CONNECTABLE           0x000100
-#define CONNECTED                 0x000200
-#define NOTIFICATIONS_ENABLED     0x000400
-
+/**
+ * @name Flags for application
+ * @{
+ */
+#define CONNECTED               0x01
+#define SET_CONNECTABLE         0x02
+#define NOTIFICATIONS_ENABLED   0x04
+#define CONN_PARAM_UPD_SENT     0x08
+#define L2CAP_PARAM_UPD_SENT    0x10
+#define TX_BUFFER_FULL          0x20
+#define SEND_DATA               0x40
 /* Added flags for handling TX, RX characteristics discovery */
-#define START_READ_TX_CHAR_HANDLE 0x000800 
-#define END_READ_TX_CHAR_HANDLE   0x001000
-#define START_READ_RX_CHAR_HANDLE 0x002000
-#define END_READ_RX_CHAR_HANDLE   0x004000
+#define START_READ_TX_CHAR_HANDLE 0x100
+#define END_READ_TX_CHAR_HANDLE   0x200
+#define START_READ_RX_CHAR_HANDLE 0x400
+#define END_READ_RX_CHAR_HANDLE   0x800
+/**
+ * @}
+ */
 
-/* GATT EVT_BLUE_GATT_TX_POOL_AVAILABLE event */
-#define TX_BUFFER_FULL            0x008000
-#define SEND_DATA                 0x010000
+
 
 /* Exported macros -----------------------------------------------------------*/
 #define APP_FLAG(flag) (app_flags & flag)

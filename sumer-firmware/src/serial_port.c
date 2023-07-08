@@ -2,9 +2,9 @@
 * File Name          : serial_port.c
 * Author             : AMS - RF  Application team
 * Version            : V1.1.0
-* Date               : 24-August-2022
-* Description        : This file handles bytes received from USB and the
-*                      serial port device configuration, connection.....
+* Date               : 24-August-2021
+* Description        : This file handles bytes received from USB and the init
+*                      function.
 ********************************************************************************
 * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
 * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
@@ -13,76 +13,167 @@
 * CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
 * INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
 *******************************************************************************/
-/* Include -------------------------------------------------------------------*/
+
 #include <stdio.h>
 #include <string.h>
 #include "gp_timer.h"
 #include "ble_const.h"
-#include "app_state.h"
 #include "bluenrg1_stack.h"
-#include "SDK_EVAL_Config.h"
+#include "bluenrg1_api.h"
+#include "app_state.h"
 #include "osal.h"
 #include "gatt_db.h"
+#include "serial_port.h"
+#include "SDK_EVAL_Config.h"
+#include "OTA_btl.h"
 
 /* External variables --------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
-/* discovery procedure mode context */
-typedef struct discoveryContext_s {
-  uint8_t check_disc_proc_timer;
-  uint8_t check_disc_mode_timer;
-  uint8_t is_device_found;
-  uint8_t do_connect;
-  tClockTime startTime;
-  uint8_t device_found_address_type;
-  uint8_t device_found_address[6];
-  uint16_t device_state;
-} discoveryContext_t;
-
 /* Private defines -----------------------------------------------------------*/
-#define BLE_NEW_SERIALPORT_COMPLETE_LOCAL_NAME_SIZE 12
+
 #define CMD_BUFF_SIZE 512
 
-#define DISCOVERY_TIMEOUT 3000 /* at least 3 seconds */
-
-#define DISCOVERY_PROC_SCAN_INT 0x4000
-#define DISCOVERY_PROC_SCAN_WIN 0x4000
-#define ADV_INT_MIN 0x90
-#define ADV_INT_MAX 0x90
+#if SERVER
+  #define SERVER_ADDRESS 0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02
+  #define LOCAL_NAME  'S','P','o','r','t','_','1','2'
+  #define MANUF_DATA_SIZE (27)
+#endif
 
 /* Private macros ------------------------------------------------------------*/
-#ifndef DEBUG
-#define DEBUG 1
-#endif
-#if DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
 
 /* Private variables ---------------------------------------------------------*/
-static discoveryContext_t discovery;
+
+uint8_t connInfo[20];
 volatile int app_flags = SET_CONNECTABLE;
 volatile uint16_t connection_handle = 0;
-extern uint16_t SerialPortServHandle, TXCharHandle, RXCharHandle;
+
+/**
+  * @brief  Handle of TX,RX  Characteristics.
+  */
+#ifdef CLIENT
+uint16_t tx_handle;
+uint16_t rx_handle;
+#endif
 
 /* UUIDs */
 UUID_t UUID_Tx;
 UUID_t UUID_Rx;
 
-uint16_t tx_handle, rx_handle;
-uint16_t discovery_time = 0;
-uint8_t device_role = 0xFF;
-uint8_t counter = 0;
-uint8_t local_name[] = {AD_TYPE_COMPLETE_LOCAL_NAME,'S','P','o','r','t','_','1','2','_','M','S'};
-
-
 static char cmd[CMD_BUFF_SIZE];
 static uint16_t cmd_buff_end = 0, cmd_buff_start = 0;
 
-
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
+
+/*******************************************************************************
+* Function Name  : SerialPort_DeviceInit.
+* Description    : Init the Serial Port device.
+* Input          : none.
+* Return         : Status.
+*******************************************************************************/
+uint8_t SerialPort_DeviceInit(void)
+{
+  uint8_t ret;
+  uint16_t service_handle;
+  uint16_t dev_name_char_handle;
+  uint16_t appearance_char_handle;
+  uint8_t name[] = {'B', 'l', 'u', 'e', 'N', 'R', 'G', '1'};
+
+#if SERVER
+  uint8_t role = GAP_PERIPHERAL_ROLE;
+  uint8_t bdaddr[] = {0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02};
+#else
+  uint8_t role = GAP_CENTRAL_ROLE;
+  uint8_t bdaddr[] = {0xbb, 0x00, 0x00, 0xE1, 0x80, 0x02};
+#endif
+
+  /* Configure Public address */
+  ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET, CONFIG_DATA_PUBADDR_LEN, bdaddr);
+  if(ret != BLE_STATUS_SUCCESS){
+    printf("Setting BD_ADDR failed: 0x%02x\r\n", ret);
+    return ret;
+  }
+
+  /* Set the TX power to -2 dBm */
+  aci_hal_set_tx_power_level(1, 4);
+
+  /* GATT Init */
+  ret = aci_gatt_init();
+  if (ret != BLE_STATUS_SUCCESS) {
+    printf ("Error in aci_gatt_init(): 0x%02x\r\n", ret);
+    return ret;
+  } else {
+    //printf ("aci_gatt_init() --> SUCCESS\r\n");
+  }
+
+  /* GAP Init */
+  ret = aci_gap_init(role, 0x00, 0x08, &service_handle,
+                     &dev_name_char_handle, &appearance_char_handle);
+  if (ret != BLE_STATUS_SUCCESS) {
+    printf ("Error in aci_gap_init() 0x%02x\r\n", ret);
+    return ret;
+  } else {
+    //printf ("aci_gap_init() --> SUCCESS\r\n");
+  }
+
+  /* Set the device name */
+  ret = aci_gatt_update_char_value_ext(0,service_handle, dev_name_char_handle,0,sizeof(name),0, sizeof(name), name);
+  if (ret != BLE_STATUS_SUCCESS) {
+    printf ("Error in Gatt Update characteristic value 0x%02x\r\n", ret);
+    return ret;
+  } else {
+    //printf ("aci_gatt_update_char_value_ext() --> SUCCESS\r\n");
+  }
+
+#if  SERVER
+  ret = Add_SerialPort_Service();
+  if (ret != BLE_STATUS_SUCCESS) {
+    printf("Error in Add_SerialPort_Service 0x%02x\r\n", ret);
+    return ret;
+  } else {
+    //printf("Add_SerialPort_Service() --> SUCCESS\r\n");
+  }
+
+#if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
+  ret = OTA_Add_Btl_Service();
+  if(ret == BLE_STATUS_SUCCESS)
+    printf("OTA service added successfully.\n");
+  else
+    printf("Error while adding OTA service.\n");
+#endif /* ST_OTA_FIRMWARE_UPGRADE_SUPPORT */
+
+#endif
+
+  return BLE_STATUS_SUCCESS;
+}
+
+void Send_Data_Over_BLE(void)
+{
+  return;
+	if(!APP_FLAG(SEND_DATA) || APP_FLAG(TX_BUFFER_FULL))
+    return;
+
+  while(cmd_buff_start < cmd_buff_end){
+    uint32_t len = MIN(20, cmd_buff_end - cmd_buff_start);
+
+#if SERVER
+    if(aci_gatt_update_char_value_ext(connection_handle,SerialPortServHandle,TXCharHandle,1,len,0, len,(uint8_t *)cmd+cmd_buff_start)==BLE_STATUS_INSUFFICIENT_RESOURCES){
+#elif CLIENT
+    if(aci_gatt_write_without_resp(connection_handle, rx_handle+1, len, (uint8_t *)cmd+cmd_buff_start)==BLE_STATUS_INSUFFICIENT_RESOURCES){
+#else
+#error "Define SERVER or CLIENT"
+#endif
+      APP_FLAG_SET(TX_BUFFER_FULL);
+      return;
+    }
+    cmd_buff_start += len;
+  }
+
+  // All data from buffer have been sent.
+  APP_FLAG_CLEAR(SEND_DATA);
+  cmd_buff_end = 0;
+  NVIC_EnableIRQ(UART_IRQn);
+}
 
 /*******************************************************************************
 * Function Name  : Process_InputData.
@@ -95,16 +186,18 @@ void Process_InputData(uint8_t* data_buffer, uint16_t Nb_bytes)
 {
   uint8_t i;
 
-  for (i = 0; i < Nb_bytes; i++) {
-    if(cmd_buff_end >= CMD_BUFF_SIZE-1)
+  for (i = 0; i < Nb_bytes; i++)
+  {
+    if(cmd_buff_end >= CMD_BUFF_SIZE-1){
       cmd_buff_end = 0;
+    }
 
     cmd[cmd_buff_end] = data_buffer[i];
-    SdkEvalComIOSendData(data_buffer[i]);
+    //SdkEvalComIOSendData(data_buffer[i]);
     cmd_buff_end++;
 
     if((cmd[cmd_buff_end-1] == '\n') || (cmd[cmd_buff_end-1] == '\r')){
-      if(cmd_buff_end != 1) {
+      if(cmd_buff_end != 1){
 
         cmd[cmd_buff_end] = '\0'; // Only a termination character. Not strictly needed.
 
@@ -113,6 +206,7 @@ void Process_InputData(uint8_t* data_buffer, uint16_t Nb_bytes)
         NVIC_DisableIRQ(UART_IRQn);
 
         cmd_buff_start = 0;
+
       }
       else {
         cmd_buff_end = 0; // Discard
@@ -121,404 +215,176 @@ void Process_InputData(uint8_t* data_buffer, uint16_t Nb_bytes)
   }
 }
 
-/*******************************************************************************
-* Function Name  : Reset_DiscoveryContext.
-* Description    : Reset the discovery context.
-* Input          : None.
-* Return         : None.
-*******************************************************************************/
-void Reset_DiscoveryContext(void)
-{
-  discovery.check_disc_proc_timer = FALSE;
-  discovery.check_disc_mode_timer = FALSE;
-  discovery.is_device_found = FALSE;
-  discovery.do_connect = FALSE;
-  discovery.startTime = 0;
-  discovery.device_state = INIT;
-  Osal_MemSet(&discovery.device_found_address[0], 0, 6);
-  device_role = 0xFF;
-}
 
 /*******************************************************************************
-* Function Name  : Setup_DeviceAddress.
-* Description    : Setup the device address.
-* Input          : None.
-* Return         : None.
+* Function Name  : Make_Connection.
+* Description    : If the device is a Client create the connection. Otherwise puts
+*                  the device in discoverable mode.
+* Input          : none.
+* Return         : none.
 *******************************************************************************/
-void Setup_DeviceAddress(void)
+void Make_Connection(void)
 {
   tBleStatus ret;
-  uint8_t bdaddr[] = {0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xA2};
-  uint8_t random_number[8];
 
-  /* get a random number from BlueNRG */
-  ret = hci_le_rand(random_number);
+#if CLIENT
+  tBDAddr bdaddr = {0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02};
+
+  ret = aci_gap_create_connection(0x4000, 0x4000, PUBLIC_ADDR, bdaddr, PUBLIC_ADDR, 40, 40, 0, 60, 2000 , 2000);
+  if (ret != BLE_STATUS_SUCCESS)
+  {
+    printf("Error while starting connection: 0x%04x\r\n", ret);
+    Clock_Wait(100);
+  }
+
+#else
+
+  /* NOTE: Updated original Server advertising data in order to be also recognized by ìBLE Sensorî app Client */
+
+  tBDAddr bdaddr = {SERVER_ADDRESS};
+
+  uint8_t manuf_data[MANUF_DATA_SIZE] = {
+    2,                      /* Length of AD type Transmission Power */
+    0x0A, 0x00,             /* Transmission Power = 0 dBm */
+    9,                      /* Length of AD type Complete Local Name */
+    0x09,                   /* AD type Complete Local Name */
+    LOCAL_NAME,             /* Local Name */
+    13,                     /* Length of AD type Manufacturer info */
+    0xFF,                   /* AD type Manufacturer info */
+    0x01,                   /* Protocol version */
+    0x05,		            /* Device ID: 0x05 */
+    0x00,                   /* Feature Mask byte#1 */
+    0x00,                   /* Feature Mask byte#2 */
+    0x00,                   /* Feature Mask byte#3 */
+    0x00,                   /* Feature Mask byte#4 */
+    0x00,                   /* BLE MAC start */
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00                    /* BLE MAC stop */
+  };
+
+
+  for (int var = 0; var < 6; ++var) {
+    manuf_data[MANUF_DATA_SIZE -1  - var] = bdaddr[var];
+  }
+
+  uint8_t local_name[] = { AD_TYPE_COMPLETE_LOCAL_NAME, LOCAL_NAME };
+
+#if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
+  hci_le_set_scan_response_data(18,BTLServiceUUID4Scan);
+#else
+  hci_le_set_scan_response_data(0,NULL);
+#endif /* ST_OTA_FIRMWARE_UPGRADE_SUPPORT */
+
+  ret = aci_gap_set_discoverable(ADV_IND, 0x90, 0x90, PUBLIC_ADDR, NO_WHITE_LIST_USE,
+                                 sizeof(local_name), local_name, 0, NULL, 0, 0);
   if(ret != BLE_STATUS_SUCCESS)
-     PRINTF("hci_le_rand() call failed: 0x%02x\n", ret);
-
-
-  discovery_time = DISCOVERY_TIMEOUT;
-
-  /* setup discovery time with random number */
-  for (uint8_t i=0; i<8; i++) {
-    discovery_time += (2*random_number[i]);
+  {
+    printf ("Error in aci_gap_set_discoverable(): 0x%02x\r\n", ret);
+  }
+  else
+  {
+    printf ("aci_gap_set_discoverable() --> SUCCESS\r\n");
   }
 
-  /* Setup last 3 bytes of public address with random number */
-  bdaddr[0] = (uint8_t) (random_number[0]);
-  bdaddr[1] = (uint8_t) (random_number[3]);
-  bdaddr[2] = (uint8_t) (random_number[6]);
+  /* Update Advertising data with manuf_data */
+  aci_gap_update_adv_data(MANUF_DATA_SIZE, manuf_data);
 
-  ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET, CONFIG_DATA_PUBADDR_LEN, bdaddr);
-  if(ret != BLE_STATUS_SUCCESS) {
-      PRINTF("Setting BD_ADDR failed 0x%02x\n", ret);
-  } else {
-    PRINTF("Public address: ");
-    for (uint8_t i=5; i>0; i--) {
-      PRINTF("%02X-", bdaddr[i]);
-    }
-    PRINTF("%02X\n", bdaddr[0]);
-  }
+#endif
 }
-
-/*******************************************************************************
-* Function Name  : Find_DeviceName.
-* Description    : Extracts the device name.
-* Input          : Data length.
-*                  Data value
-* Return         : TRUE if the local name found is the expected one, FALSE otherwise.
-*******************************************************************************/
-uint8_t Find_DeviceName(uint8_t data_length, uint8_t *data_value)
-{
-  uint8_t index = 0;
-
-  while (index < data_length) {
-    /* Advertising data fields: len, type, values */
-    /* Check if field is complete local name and the lenght is the expected one for serial port  */
-    if (data_value[index+1] == AD_TYPE_COMPLETE_LOCAL_NAME) {
-      /* check if found device name is the expected one: local_name */
-      if (memcmp(&data_value[index+1], &local_name[0], BLE_NEW_SERIALPORT_COMPLETE_LOCAL_NAME_SIZE) == 0)
-        return TRUE;
-      else
-        return FALSE;
-    } else {
-      /* move to next advertising field */
-      index += (data_value[index] +1);
-    }
-  }
-
-  return FALSE;
-}
-
-/*******************************************************************************
-* Function Name  : SerialPort_DeviceInit.
-* Description    : Init Serial Port device.
-* Input          : None.
-* Return         : Status.
-*******************************************************************************/
-uint8_t SerialPort_DeviceInit(void)
-{
-  uint8_t ret;
-  uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
-
-  /* Setup the device address */
-  Setup_DeviceAddress();
-
-  /* Set the TX power to -2 dBm */
-  aci_hal_set_tx_power_level(1, 4);
-
-  /* GATT Init */
-  ret = aci_gatt_init();
-  if(ret != BLE_STATUS_SUCCESS) {
-      PRINTF("GATT_Init failed: 0x%02x\n", ret);
-      return ret;
-  }
-
-  /* GAP Init */
-  ret = aci_gap_init(GAP_CENTRAL_ROLE|GAP_PERIPHERAL_ROLE, 0,0x07, &service_handle,
-                     &dev_name_char_handle, &appearance_char_handle);
-  if(ret != BLE_STATUS_SUCCESS) {
-    PRINTF("GAP_Init failed: 0x%02x\n", ret);
-    return ret;
-  }
-
-  /* Add Device Service & Characteristics */
-  ret = Add_SerialPort_Service();
-  if(ret != BLE_STATUS_SUCCESS) {
-    PRINTF("Error while adding service: 0x%02x\n", ret);
-    return ret;
-  }
-
-  /* Reset the discovery context */
-  Reset_DiscoveryContext();
-
-  return BLE_STATUS_SUCCESS;
-}
-
-void Send_Data_Over_BLE(void)
-{
-  if(!APP_FLAG(SEND_DATA) || APP_FLAG(TX_BUFFER_FULL))
-    return;
-
-  while(cmd_buff_start < cmd_buff_end){
-    uint32_t len = MIN(20, cmd_buff_end - cmd_buff_start);
-
-    if(device_role == SLAVE_ROLE) {
-      if(aci_gatt_update_char_value_ext(connection_handle,SerialPortServHandle,TXCharHandle,1,len,0, len,(uint8_t *)cmd+cmd_buff_start)==BLE_STATUS_INSUFFICIENT_RESOURCES){
-        APP_FLAG_SET(TX_BUFFER_FULL);
-        return;
-      }
-    }else if(device_role == MASTER_ROLE) {
-      if(aci_gatt_write_without_resp(connection_handle, rx_handle+1, len, (uint8_t *)cmd+cmd_buff_start)==BLE_STATUS_INSUFFICIENT_RESOURCES){
-        APP_FLAG_SET(TX_BUFFER_FULL);
-        return;
-      }
-    }
-    cmd_buff_start += len;
-  }
-
-  // All data from buffer have been sent.
-  APP_FLAG_CLEAR(SEND_DATA);
-  cmd_buff_end = 0;
-  NVIC_EnableIRQ(UART_IRQn);
-}
-
-/*******************************************************************************
-* Function Name  : Connection_StateMachine.
-* Description    : Connection state machine.
-* Input          : None.
-* Return         : None.
-*******************************************************************************/
-void Connection_StateMachine(void)
-{
-  uint8_t ret;
-
-  switch (discovery.device_state) {
-  case (INIT):
-    {
-      Reset_DiscoveryContext();
-      discovery.device_state = START_DISCOVERY_PROC;
-    }
-    break; /* end case (INIT) */
-  case (START_DISCOVERY_PROC):
-    {
-      ret = aci_gap_start_general_discovery_proc(DISCOVERY_PROC_SCAN_INT, DISCOVERY_PROC_SCAN_WIN, PUBLIC_ADDR, 0x00);
-      if (ret != BLE_STATUS_SUCCESS) {
-        PRINTF("aci_gap_start_general_discovery_proc() failed: %02X\n",ret);
-        discovery.device_state = DISCOVERY_ERROR;
-      } else {
-        PRINTF("aci_gap_start_general_discovery_proc OK\n");
-        discovery.startTime = Clock_Time();
-        discovery.check_disc_proc_timer = TRUE;
-        discovery.check_disc_mode_timer = FALSE;
-        discovery.device_state = WAIT_TIMER_EXPIRED;
-      }
-    }
-    break;/* end case (START_DISCOVERY_PROC) */
-  case (WAIT_TIMER_EXPIRED):
-    {
-      /* Verify if startTime check has to be done  since discovery procedure is ongoing */
-      if (discovery.check_disc_proc_timer == TRUE) {
-        /* check startTime value */
-        if (Clock_Time() - discovery.startTime > discovery_time) {
-          discovery.check_disc_proc_timer = FALSE;
-          discovery.startTime = 0;
-          discovery.device_state = DO_TERMINATE_GAP_PROC;
-
-        }/* if (Clock_Time() - discovery.startTime > discovery_time) */
-      }
-      /* Verify if startTime check has to be done  since discovery mode is ongoing */
-      else if (discovery.check_disc_mode_timer == TRUE) {
-        /* check startTime value */
-        if (Clock_Time() - discovery.startTime > discovery_time) {
-          discovery.check_disc_mode_timer = FALSE;
-          discovery.startTime = 0;
-
-          /* Discovery mode is ongoing: set non discoverable mode */
-          discovery.device_state = DO_NON_DISCOVERABLE_MODE;
-
-        }/* else if (discovery.check_disc_mode_timer == TRUE) */
-      }/* if ((discovery.check_disc_proc_timer == TRUE) */
-    }
-    break; /* end case (WAIT_TIMER_EXPIRED) */
-  case (DO_NON_DISCOVERABLE_MODE):
-    {
-      ret = aci_gap_set_non_discoverable();
-      if (ret != BLE_STATUS_SUCCESS) {
-        PRINTF("aci_gap_set_non_discoverable() failed: 0x%02x\n", ret);
-        discovery.device_state = DISCOVERY_ERROR;
-      } else {
-        PRINTF("aci_gap_set_non_discoverable() OK\n");
-        /* Restart Central discovery procedure */
-        discovery.device_state = INIT;
-      }
-    }
-    break; /* end case (DO_NON_DISCOVERABLE_MODE) */
-  case (DO_TERMINATE_GAP_PROC):
-    {
-      /* terminate gap procedure */
-      ret = aci_gap_terminate_gap_proc(0x02); // GENERAL_DISCOVERY_PROCEDURE
-      if (ret != BLE_STATUS_SUCCESS)
-      {
-        PRINTF("aci_gap_terminate_gap_procedure() failed: 0x%02x\n", ret);
-        discovery.device_state = DISCOVERY_ERROR;
-        break;
-      }
-      else
-      {
-        PRINTF("aci_gap_terminate_gap_procedure() OK\n");
-        discovery.device_state = WAIT_EVENT; /* wait for GAP procedure complete */
-      }
-    }
-    break; /* end case (DO_TERMINATE_GAP_PROC) */
-  case (DO_DIRECT_CONNECTION_PROC):
-    {
-      PRINTF("Device Found with address: ");
-      for (uint8_t i=5; i>0; i--) {
-        PRINTF("%02X-", discovery.device_found_address[i]);
-      }
-      PRINTF("%02X\n", discovery.device_found_address[0]);
-      /* Do connection with first discovered device */
-      ret = aci_gap_create_connection(DISCOVERY_PROC_SCAN_INT, DISCOVERY_PROC_SCAN_WIN,
-                                      discovery.device_found_address_type, discovery.device_found_address,
-                                      PUBLIC_ADDR, 40, 40, 0, 60, 2000 , 2000);
-      if (ret != BLE_STATUS_SUCCESS) {
-        PRINTF("aci_gap_create_connection() failed: 0x%02x\n", ret);
-        discovery.device_state = DISCOVERY_ERROR;
-      } else {
-        PRINTF("aci_gap_create_connection() OK\n");
-        discovery.device_state = WAIT_EVENT;
-      }
-    }
-    break; /* end case (DO_DIRECT_CONNECTION_PROC) */
-  case (WAIT_EVENT):
-    {
-      discovery.device_state = WAIT_EVENT;
-    }
-    break; /* end case (WAIT_EVENT) */
-  case (ENTER_DISCOVERY_MODE):
-    {
-      /* Put Peripheral device in discoverable mode */
-
-      /* disable scan response */
-      hci_le_set_scan_response_data(0,NULL);
-
-      ret = aci_gap_set_discoverable(ADV_IND, ADV_INT_MIN, ADV_INT_MAX, PUBLIC_ADDR, NO_WHITE_LIST_USE,
-                                     sizeof(local_name), local_name, 0, NULL, 0x6, 0x8);
-      if (ret != BLE_STATUS_SUCCESS) {
-        PRINTF("aci_gap_set_discoverable() failed: 0x%02x\n", ret);
-        discovery.device_state = DISCOVERY_ERROR;
-      } else {
-        PRINTF("aci_gap_set_discoverable() OK\n");
-        discovery.startTime = Clock_Time();
-        discovery.check_disc_mode_timer = TRUE;
-        discovery.check_disc_proc_timer = FALSE;
-        discovery.device_state = WAIT_TIMER_EXPIRED;
-      }
-    }
-    break; /* end case (ENTER_DISCOVERY_MODE) */
-  case (DISCOVERY_ERROR):
-    {
-      Reset_DiscoveryContext();
-    }
-    break; /* end case (DISCOVERY_ERROR) */
-  default:
-    break;
-   }/* end switch */
-
-}/* end Connection_StateMachine() */
 
 /*******************************************************************************
 * Function Name  : APP_Tick.
-* Description    : Application tick to run the state machine.
-* Input          : None.
-* Return         : None.
+* Description    : Tick to run the application state machine.
+* Input          : none.
+* Return         : none.
 *******************************************************************************/
 void APP_Tick(void)
 {
-  if(APP_FLAG(SET_CONNECTABLE)) {
-    Connection_StateMachine();
+#if CLIENT
+  tBleStatus ret;
+#endif
+
+  if(APP_FLAG(SET_CONNECTABLE))
+  {
+    Make_Connection();
+    APP_FLAG_CLEAR(SET_CONNECTABLE);
   }
 
   Send_Data_Over_BLE();
 
-  if (device_role == MASTER_ROLE) {
-    /* Start TX handle Characteristic discovery if not yet done */
-    if (APP_FLAG(CONNECTED) && !APP_FLAG(END_READ_TX_CHAR_HANDLE)) {
-      if (!APP_FLAG(START_READ_TX_CHAR_HANDLE)) {
-        /* Discovery TX characteristic handle by UUID 128 bits */
-        const uint8_t charUuid128_TX[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x96,0x9e,0xe2,0x11,0x9e,0xb1,0xe1,0xf2,0x73,0xd9};
+#if REQUEST_CONN_PARAM_UPDATE
+  if(APP_FLAG(CONNECTED) && !APP_FLAG(L2CAP_PARAM_UPD_SENT) && Timer_Expired(&l2cap_req_timer))
+  {
+    aci_l2cap_connection_parameter_update_req(connection_handle, 8, 16, 0, 600);
+    APP_FLAG_SET(L2CAP_PARAM_UPD_SENT);
+  }
+#endif
 
-        Osal_MemCpy(&UUID_Tx.UUID_16, charUuid128_TX, 16);
-        aci_gatt_disc_char_by_uuid(connection_handle, 0x0001, 0xFFFF,UUID_TYPE_128,&UUID_Tx);
-        APP_FLAG_SET(START_READ_TX_CHAR_HANDLE);
-      }
+#if CLIENT
+  /* Start TX handle Characteristic discovery if not yet done */
+  if (APP_FLAG(CONNECTED) && !APP_FLAG(END_READ_TX_CHAR_HANDLE))
+  {
+    if (!APP_FLAG(START_READ_TX_CHAR_HANDLE))
+    {
+      /* Discovery TX characteristic handle by UUID 128 bits */
+
+      const uint8_t charUuid128_TX[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x96,0x9e,0xe2,0x11,0x9e,0xb1,0xe1,0xf2,0x73,0xd9};
+
+      Osal_MemCpy(&UUID_Tx.UUID_16, charUuid128_TX, 16);
+      ret = aci_gatt_disc_char_by_uuid(connection_handle, 0x0001, 0xFFFF,UUID_TYPE_128,&UUID_Tx);
+      if (ret != 0)
+        printf ("Error in aci_gatt_disc_char_by_uuid() for TX characteristic: 0x%04xr\n", ret);
+      else
+        printf ("aci_gatt_disc_char_by_uuid() for TX characteristic --> SUCCESS\r\n");
+      APP_FLAG_SET(START_READ_TX_CHAR_HANDLE);
     }
-    /* Start RX handle Characteristic discovery if not yet done */
-    else if (APP_FLAG(CONNECTED) && !APP_FLAG(END_READ_RX_CHAR_HANDLE)) {
-      /* Discovery RX characteristic handle by UUID 128 bits */
-      if (!APP_FLAG(START_READ_RX_CHAR_HANDLE)) {
-        /* Discovery RX characteristic handle by UUID 128 bits */
-        const uint8_t charUuid128_RX[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x96,0x9e,0xe2,0x11,0x9e,0xb1,0xe2,0xf2,0x73,0xd9};
+  }
+  /* Start RX handle Characteristic discovery if not yet done */
+  else if (APP_FLAG(CONNECTED) && !APP_FLAG(END_READ_RX_CHAR_HANDLE))
+  {
+    /* Discovery RX characteristic handle by UUID 128 bits */
+    if (!APP_FLAG(START_READ_RX_CHAR_HANDLE))
+    {
+      /* Discovery TX characteristic handle by UUID 128 bits */
 
-        Osal_MemCpy(&UUID_Rx.UUID_16, charUuid128_RX, 16);
-        aci_gatt_disc_char_by_uuid(connection_handle, 0x0001, 0xFFFF,UUID_TYPE_128,&UUID_Rx);
-        APP_FLAG_SET(START_READ_RX_CHAR_HANDLE);
-      }
+      const uint8_t charUuid128_RX[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x96,0x9e,0xe2,0x11,0x9e,0xb1,0xe2,0xf2,0x73,0xd9};
+
+      Osal_MemCpy(&UUID_Rx.UUID_16, charUuid128_RX, 16);
+      ret = aci_gatt_disc_char_by_uuid(connection_handle, 0x0001, 0xFFFF,UUID_TYPE_128,&UUID_Rx);
+      if (ret != 0)
+        printf ("Error in aci_gatt_disc_char_by_uuid() for RX characteristic: 0x%04xr\n", ret);
+      else
+        printf ("aci_gatt_disc_char_by_uuid() for RX characteristic --> SUCCESS\r\n");
+
+      APP_FLAG_SET(START_READ_RX_CHAR_HANDLE);
     }
+  }
 
-    if(APP_FLAG(CONNECTED) && APP_FLAG(END_READ_TX_CHAR_HANDLE) && APP_FLAG(END_READ_RX_CHAR_HANDLE) && !APP_FLAG(NOTIFICATIONS_ENABLED)) {
-      uint8_t client_char_conf_data[] = {0x01, 0x00}; // Enable notifications
-      struct timer t;
-      Timer_Set(&t, CLOCK_SECOND*10);
+  if(APP_FLAG(CONNECTED) && APP_FLAG(END_READ_TX_CHAR_HANDLE) && APP_FLAG(END_READ_RX_CHAR_HANDLE) && !APP_FLAG(NOTIFICATIONS_ENABLED))
+  {
+    uint8_t client_char_conf_data[] = {0x01, 0x00}; // Enable notifications
+    struct timer t;
+    Timer_Set(&t, CLOCK_SECOND*10);
 
-      while(aci_gatt_write_char_desc(connection_handle, tx_handle+2, 2, client_char_conf_data)==BLE_STATUS_NOT_ALLOWED) {
+    while(aci_gatt_write_char_desc(connection_handle, tx_handle+2, 2, client_char_conf_data)==BLE_STATUS_NOT_ALLOWED){ //TX_HANDLE;
         // Radio is busy.
         if(Timer_Expired(&t)) break;
-      }
-      APP_FLAG_SET(NOTIFICATIONS_ENABLED);
     }
-  }/* if (device_role == MASTER_ROLE) */
-}
+    APP_FLAG_SET(NOTIFICATIONS_ENABLED);
+  }
+#endif
+
+}/* end APP_Tick() */
 
 
 /* ***************** BlueNRG-1 Stack Callbacks ********************************/
 
 /*******************************************************************************
- * Function Name  : aci_gap_proc_complete_event.
- * Description    : This event indicates the end of a GAP procedure.
- * Input          : See file bluenrg1_events.h
- * Output         : See file bluenrg1_events.h
- * Return         : See file bluenrg1_events.h
- *******************************************************************************/
-void aci_gap_proc_complete_event(uint8_t Procedure_Code,
-                                 uint8_t Status,
-                                 uint8_t Data_Length,
-                                 uint8_t Data[])
-{
-  if (Procedure_Code == GAP_GENERAL_DISCOVERY_PROC) {
-    /* gap procedure complete has been raised as consequence of a GAP
-       terminate procedure done after a device found event during the discovery procedure */
-    if (discovery.do_connect == TRUE) {
-      discovery.do_connect = FALSE;
-      discovery.check_disc_proc_timer = FALSE;
-      discovery.startTime = 0;
-      /* discovery procedure has been completed and device found:
-         go to connection mode */
-      discovery.device_state = DO_DIRECT_CONNECTION_PROC;
-    } else {
-      /* discovery procedure has been completed and no device found:
-         go to discovery mode */
-      discovery.check_disc_proc_timer = FALSE;
-      discovery.startTime = 0;
-      discovery.device_state = ENTER_DISCOVERY_MODE;
-    }
-  }
-}
-
-/*******************************************************************************
  * Function Name  : hci_le_connection_complete_event.
- * Description    : This event indicates the end of a connection procedure.
+ * Description    : This event indicates that a new connection has been created.
  * Input          : See file bluenrg1_events.h
  * Output         : See file bluenrg1_events.h
  * Return         : See file bluenrg1_events.h
@@ -534,25 +400,19 @@ void hci_le_connection_complete_event(uint8_t Status,
                                       uint8_t Master_Clock_Accuracy)
 
 {
-  /* Set the exit state for the Connection state machine: APP_FLAG_CLEAR(SET_CONNECTABLE); */
-  APP_FLAG_CLEAR(SET_CONNECTABLE);
-  discovery.check_disc_proc_timer = FALSE;
-  discovery.check_disc_mode_timer = FALSE;
-  discovery.startTime = 0;
-
   connection_handle = Connection_Handle;
 
   APP_FLAG_SET(CONNECTED);
-  discovery.device_state = INIT;
 
-  /* store device role */
-  device_role = Role;
-
+#if REQUEST_CONN_PARAM_UPDATE
+  APP_FLAG_CLEAR(L2CAP_PARAM_UPD_SENT);
+  Timer_Set(&l2cap_req_timer, CLOCK_SECOND*2);
+#endif
 }/* end hci_le_connection_complete_event() */
 
 /*******************************************************************************
  * Function Name  : hci_disconnection_complete_event.
- * Description    : This event indicates the discconnection from a peer device.
+ * Description    : This event occurs when a connection is terminated.
  * Input          : See file bluenrg1_events.h
  * Output         : See file bluenrg1_events.h
  * Return         : See file bluenrg1_events.h
@@ -561,59 +421,27 @@ void hci_disconnection_complete_event(uint8_t Status,
                                       uint16_t Connection_Handle,
                                       uint8_t Reason)
 {
-  APP_FLAG_CLEAR(CONNECTED);
+   APP_FLAG_CLEAR(CONNECTED);
   /* Make the device connectable again. */
   APP_FLAG_SET(SET_CONNECTABLE);
   APP_FLAG_CLEAR(NOTIFICATIONS_ENABLED);
+  APP_FLAG_CLEAR(TX_BUFFER_FULL);
 
   APP_FLAG_CLEAR(START_READ_TX_CHAR_HANDLE);
   APP_FLAG_CLEAR(END_READ_TX_CHAR_HANDLE);
   APP_FLAG_CLEAR(START_READ_RX_CHAR_HANDLE);
   APP_FLAG_CLEAR(END_READ_RX_CHAR_HANDLE);
-  APP_FLAG_CLEAR(TX_BUFFER_FULL);
 
-  Reset_DiscoveryContext();
+#if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
+  OTA_terminate_connection();
+#endif
 
 }/* end hci_disconnection_complete_event() */
 
-/*******************************************************************************
- * Function Name  : hci_le_advertising_report_event.
- * Description    : An advertising report is received.
- * Input          : See file bluenrg1_events.h
- * Output         : See file bluenrg1_events.h
- * Return         : See file bluenrg1_events.h
- *******************************************************************************/
-void hci_le_advertising_report_event(uint8_t Num_Reports,
-                                     Advertising_Report_t Advertising_Report[])
-{
-  /* Advertising_Report contains all the expected parameters */
-  uint8_t evt_type = Advertising_Report[0].Event_Type ;
-  uint8_t data_length = Advertising_Report[0].Length_Data;
-  uint8_t bdaddr_type = Advertising_Report[0].Address_Type;
-  uint8_t bdaddr[6];
-
-  Osal_MemCpy(bdaddr, Advertising_Report[0].Address,6);
-
-  /* BLE Serial port device not yet found: check current device found */
-  if (!(discovery.is_device_found)) {
-    /* BLE Serial port device not yet found: check current device found */
-    if ((evt_type == ADV_IND) && Find_DeviceName(data_length, Advertising_Report[0].Data)) {
-      discovery.is_device_found = TRUE;
-      discovery.do_connect = TRUE;
-      discovery.check_disc_proc_timer = FALSE;
-      discovery.check_disc_mode_timer = FALSE;
-      /* store first device found:  address type and address value */
-      discovery.device_found_address_type = bdaddr_type;
-      Osal_MemCpy(discovery.device_found_address, bdaddr, 6);
-      /* device is found: terminate discovery procedure */
-      discovery.device_state = DO_TERMINATE_GAP_PROC;
-    }
-  }
-} /* hci_le_advertising_report_event() */
 
 /*******************************************************************************
  * Function Name  : aci_gatt_attribute_modified_event.
- * Description    : Attribute modified from a peer device.
+ * Description    : This event occurs when an attribute is modified.
  * Input          : See file bluenrg1_events.h
  * Output         : See file bluenrg1_events.h
  * Return         : See file bluenrg1_events.h
@@ -624,12 +452,18 @@ void aci_gatt_attribute_modified_event(uint16_t Connection_Handle,
                                        uint16_t Attr_Data_Length,
                                        uint8_t Attr_Data[])
 {
+#if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
+  OTA_Write_Request_CB(Connection_Handle, Attr_Handle, Attr_Data_Length, Attr_Data);
+#endif /* ST_OTA_FIRMWARE_UPGRADE_SUPPORT */
+
   Attribute_Modified_CB(Attr_Handle, Attr_Data_Length, Attr_Data);
-} /* end aci_gatt_attribute_modified_event() */
+}
+
+#if CLIENT
 
 /*******************************************************************************
  * Function Name  : aci_gatt_notification_event.
- * Description    : Notification received from a peer device.
+ * Description    : This event occurs when a notification is received.
  * Input          : See file bluenrg1_events.h
  * Output         : See file bluenrg1_events.h
  * Return         : See file bluenrg1_events.h
@@ -639,15 +473,19 @@ void aci_gatt_notification_event(uint16_t Connection_Handle,
                                  uint8_t Attribute_Value_Length,
                                  uint8_t Attribute_Value[])
 {
-  if(Attribute_Handle == tx_handle+1) {
-    for(volatile uint8_t i = 0; i < Attribute_Value_Length; i++)
-    	printf("%c", Attribute_Value[i]);
-  }
-} /* end aci_gatt_notification_event() */
+  uint16_t attr_handle;
+
+  attr_handle = Attribute_Handle;
+    if(attr_handle == tx_handle+1)
+    {
+      for(int i = 0; i < Attribute_Value_Length; i++)
+          printf("%c", Attribute_Value[i]);
+    }
+}
 
 /*******************************************************************************
  * Function Name  : aci_gatt_disc_read_char_by_uuid_resp_event.
- * Description    : Read characteristic by UUID from a peer device.
+ * Description    : This event occurs when a discovery read characteristic by UUID response.
  * Input          : See file bluenrg1_events.h
  * Output         : See file bluenrg1_events.h
  * Return         : See file bluenrg1_events.h
@@ -658,18 +496,21 @@ void aci_gatt_disc_read_char_by_uuid_resp_event(uint16_t Connection_Handle,
                                                 uint8_t Attribute_Value[])
 {
   printf("aci_gatt_disc_read_char_by_uuid_resp_event, Connection Handle: 0x%04X\n", Connection_Handle);
-  if (APP_FLAG(START_READ_TX_CHAR_HANDLE) && !APP_FLAG(END_READ_TX_CHAR_HANDLE)) {
+  if (APP_FLAG(START_READ_TX_CHAR_HANDLE) && !APP_FLAG(END_READ_TX_CHAR_HANDLE))
+  {
     tx_handle = Attribute_Handle;
     printf("TX Char Handle 0x%04X\n", tx_handle);
-  } else if (APP_FLAG(START_READ_RX_CHAR_HANDLE) && !APP_FLAG(END_READ_RX_CHAR_HANDLE)) {
+  }
+  else if (APP_FLAG(START_READ_RX_CHAR_HANDLE) && !APP_FLAG(END_READ_RX_CHAR_HANDLE))
+  {
     rx_handle = Attribute_Handle;
     printf("RX Char Handle 0x%04X\n", rx_handle);
   }
-} /* end aci_gatt_disc_read_char_by_uuid_resp_event() */
+}
 
 /*******************************************************************************
  * Function Name  : aci_gatt_proc_complete_event.
- * Description    : GATT procedure complet event.
+ * Description    : This event occurs when a GATT procedure complete is received.
  * Input          : See file bluenrg1_events.h
  * Output         : See file bluenrg1_events.h
  * Return         : See file bluenrg1_events.h
@@ -677,16 +518,23 @@ void aci_gatt_disc_read_char_by_uuid_resp_event(uint16_t Connection_Handle,
 void aci_gatt_proc_complete_event(uint16_t Connection_Handle,
                                   uint8_t Error_Code)
 {
-  if (APP_FLAG(START_READ_TX_CHAR_HANDLE) && !APP_FLAG(END_READ_TX_CHAR_HANDLE)) {
+  if (APP_FLAG(START_READ_TX_CHAR_HANDLE) && !APP_FLAG(END_READ_TX_CHAR_HANDLE))
+  {
+    printf("aci_GATT_PROCEDURE_COMPLETE_Event for START_READ_TX_CHAR_HANDLE \r\n");
     APP_FLAG_SET(END_READ_TX_CHAR_HANDLE);
-  } else if (APP_FLAG(START_READ_RX_CHAR_HANDLE) && !APP_FLAG(END_READ_RX_CHAR_HANDLE)) {
+  }
+  else if (APP_FLAG(START_READ_RX_CHAR_HANDLE) && !APP_FLAG(END_READ_RX_CHAR_HANDLE))
+  {
+    printf("aci_GATT_PROCEDURE_COMPLETE_Event for START_READ_TX_CHAR_HANDLE \r\n");
     APP_FLAG_SET(END_READ_RX_CHAR_HANDLE);
   }
-} /* end aci_gatt_proc_complete_event() */
+}
+
+#endif /* CLIENT */
 
 /*******************************************************************************
  * Function Name  : aci_gatt_tx_pool_available_event.
- * Description    : GATT TX pool available event.
+ * Description    : This event occurs when a TX pool available is received.
  * Input          : See file bluenrg1_events.h
  * Output         : See file bluenrg1_events.h
  * Return         : See file bluenrg1_events.h
@@ -694,5 +542,36 @@ void aci_gatt_proc_complete_event(uint16_t Connection_Handle,
 void aci_gatt_tx_pool_available_event(uint16_t Connection_Handle,
                                       uint16_t Available_Buffers)
 {
+  /* It allows to notify when at least 2 GATT TX buffers are available */
   APP_FLAG_CLEAR(TX_BUFFER_FULL);
-} /* end aci_gatt_tx_pool_available_event() */
+}
+
+/*******************************************************************************
+ * Function Name  : aci_gatt_read_permit_req_event.
+ * Description    : This event is given when a read request is received
+ *                  by the server from the client.
+ * Input          : See file bluenrg1_events.h
+ * Output         : See file bluenrg1_events.h
+ * Return         : See file bluenrg1_events.h
+ *******************************************************************************/
+void aci_gatt_read_permit_req_event(uint16_t Connection_Handle,
+                                    uint16_t Attribute_Handle,
+                                    uint16_t Offset)
+{
+#if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
+  /* Lower/Higher Applications with OTA Service */
+  aci_gatt_allow_read(Connection_Handle);
+#endif /* ST_OTA_FIRMWARE_UPGRADE_SUPPORT */
+}
+
+void aci_hal_end_of_radio_activity_event(uint8_t Last_State,
+                                         uint8_t Next_State,
+                                         uint32_t Next_State_SysTime)
+{
+#if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
+  if (Next_State == 0x02) /* 0x02: Connection event slave */
+  {
+    OTA_Radio_Activity(Next_State_SysTime);
+  }
+#endif
+}

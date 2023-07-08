@@ -35,7 +35,7 @@
 #include "BlueNRG1_uart.h"
 /*#include "BlueNRG1_mft.h"*/
 /*#include "BlueNRG1_rtc.h"*/
-#include "BlueNRG1_dma.h"
+/*#include "BlueNRG1_cpm.h"*/
 #include "BlueNRG1_sysCtrl.h"
 #include "misc.h" /* High level functions for NVIC and SysTick (add-on to CMSIS functions) */
 

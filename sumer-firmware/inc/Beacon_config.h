@@ -1,12 +1,12 @@
-#ifndef _BEACON_CONFIG_H_
-#define _BEACON_CONFIG_H_
+#ifndef _SERIAPORT_CONFIG_H_
+#define _SERIAPORT_CONFIG_H_
 
 #include "bluenrg1_stack.h"
 #include "stack_user_cfg.h"
 #include "OTA_btl.h"
 
-/* This file contains all the information needed to init the BlueNRG-1 stack.
- * These constants and variables are used from the BlueNRG-1 stack to reserve RAM and FLASH 
+/* This file contains all the information needed to init the BlueNRG-1_2 stack.
+ * These constants and variables are used from the BlueNRG-1_2stack to reserve RAM and FLASH
  * according the application requests
  */
 
@@ -19,31 +19,18 @@
 
 /* Enable/disable Data length extension Max supported ATT_MTU size based on OTA client & server Max ATT_MTU sizes capabilities */
 #if (CONTROLLER_DATA_LENGTH_EXTENSION_ENABLED == 1) && (OTA_EXTENDED_PACKET_LEN == 1) 
-  #define OTA_MAX_ATT_MTU_SIZE    (OTA_ATT_MTU_SIZE)   //(220)   /* OTA Client & Server supported ATT_MTU */   
+  #define OTA_MAX_ATT_MTU_SIZE    (OTA_ATT_MTU_SIZE)   //(220)  /* OTA Client & Server supported ATT_MTU */
 #else /* BlueNRG-1 device: no data length extension support */
-  #define OTA_MAX_ATT_MTU_SIZE    (DEFAULT_ATT_MTU)              /* DEFAULT_ATT_MTU size = 23 bytes */ 
-#endif 
+  #define OTA_MAX_ATT_MTU_SIZE    (DEFAULT_ATT_MTU)             /* DEFAULT_ATT_MTU size = 23 bytes */
+#endif
 
-/* Number of services requests from the beacon demo */
-#define NUM_APP_GATT_SERVICES 1
-
-/* Number of attributes requests from the beacon demo */
-#define NUM_APP_GATT_ATTRIBUTES 5
-
-/* Number of links needed for the demo: 1
- * Only 1 the default
- */
-#define NUM_LINKS               (MIN_NUM_LINK)
-
-/* Number of GATT attributes needed for the beacon demo. */
-#define NUM_GATT_ATTRIBUTES     (DEFAULT_NUM_GATT_ATTRIBUTES + NUM_APP_GATT_ATTRIBUTES)
-
-/* Number of GATT services needed for the beacon demo. */
-#define NUM_GATT_SERVICES       (DEFAULT_NUM_GATT_SERVICES + NUM_APP_GATT_SERVICES)
-
-/* Array size for the attribute value for OTA service */
 #if defined (ST_OTA_LOWER_APPLICATION) || defined (ST_OTA_HIGHER_APPLICATION)
-   
+/* Number of services requests from the serial port demo */
+#define NUM_APP_GATT_SERVICES (1 + 1) /* 1 serial port service + 1 OTA service */
+
+/* Number of attributes requests from the serial port demo */
+#define NUM_APP_GATT_ATTRIBUTES (5 + 9) /* 5 attributes x BLE serial port service characteristics + 9 for OTA Service characteristics */
+
 /**
  * Set the number of 16-bytes units used on an OTA FW data packet for matching OTA client MAX ATT_MTU
  */
@@ -51,11 +38,17 @@
 
 /* OTA characteristics maximum lenght */
 #define OTA_MAX_ATT_SIZE (4 + OTA_16_BYTES_BLOCKS_NUMBER * 16) 
-   
+
 #else /* NO OTA Service is required */
    
+/* Number of services requests from the serial port demo */
+#define NUM_APP_GATT_SERVICES 1  /* 1 serial port service */
+
+/* Number of attributes requests from the serial port demo */
+#define NUM_APP_GATT_ATTRIBUTES 5 /* 5 attributes x BLE serial port service characteristics */
+
 /* OTA characteristics maximum lenght */
-#define OTA_MAX_ATT_SIZE      (0)       /* No OTA service is used */
+#define OTA_MAX_ATT_SIZE (0)
    
 #endif
 
@@ -67,6 +60,18 @@
 /* Set supported max value for attribute size: it is the biggest attribute size enabled by the application. */
 #define APP_MAX_ATT_SIZE	  MAX_CHAR_LEN(OTA_MAX_ATT_SIZE,  _MAX_ATT_SIZE)
 
+/* Number of links needed for the demo: 1
+ * Only 1 the default
+ */
+#define NUM_LINKS               (MIN_NUM_LINK)
+
+/* Number of GATT attributes needed for the serial port demo. */
+#define NUM_GATT_ATTRIBUTES     (DEFAULT_NUM_GATT_ATTRIBUTES + NUM_APP_GATT_ATTRIBUTES)
+
+/* Number of GATT services needed for the serial port demo. */
+#define NUM_GATT_SERVICES       (DEFAULT_NUM_GATT_SERVICES + NUM_APP_GATT_SERVICES)
+
+
 /* Array size for the attribute value for OTA service */
 #if defined (ST_OTA_LOWER_APPLICATION) || defined (ST_OTA_HIGHER_APPLICATION)
 /* OTA service: 4 characteristics (1 notify property): 99 bytes + 
@@ -75,9 +80,13 @@
 #else
 #define OTA_ATT_VALUE_ARRAY_SIZE (0)       /* No OTA service is used */
 #endif
-   
+
 /* Array size for the attribute value */
-#define ATT_VALUE_ARRAY_SIZE    (44 + 80 + OTA_ATT_VALUE_ARRAY_SIZE) /* Only GATT & GAP default services, NUM_LINKS = 1 */
+#if CLIENT
+#define ATT_VALUE_ARRAY_SIZE    (44) //(GATT + GAP Services Characteristics)
+#elif SERVER
+#define ATT_VALUE_ARRAY_SIZE    (44 + 80 + OTA_ATT_VALUE_ARRAY_SIZE) //(GATT + GAP) = 44 + serial port  (TX (41) + RX (39) characteristics)   Services
+#endif
 
 /* Flash security database size */
 #define FLASH_SEC_DB_SIZE       (0x400)
@@ -108,7 +117,6 @@
 
 /* Additional number of memory blocks  to be added to the minimum */
 #define OPT_MBLOCKS		(6) /* 6:  for reaching the max throughput: ~220kbps (same as BLE stack 1.x) */
-
 
 /* Set the number of memory block for packet allocation */
 #define MBLOCKS_COUNT           (MBLOCKS_CALC(PREPARE_WRITE_LIST_SIZE, MAX_ATT_MTU, NUM_LINKS) + OPT_MBLOCKS)
@@ -191,6 +199,4 @@ const BlueNRG_Stack_Initialization_t BlueNRG_Stack_Init_params = {
     CONFIG_TABLE,
 };
 
-
-
-#endif // _BEACON_CONFIG_H_
+#endif // _SERIAPORT_CONFIG_H_
