@@ -182,9 +182,7 @@ ErrorStatus SpiServiceRead(uint8_t deviceId,uint8_t *pBuffer, uint8_t RegisterAd
 	SPI_SendData(RegisterAddr);
 
 
-	/*SPI_SendData(0x00);
-	SPI_SendData(0x00);*/
-	SPI_ClearRXFIFO();
+	//SPI_ClearRXFIFO();
 
 	for (uint8_t i = 0; i < NumByteToRead; i++) {
 		while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
@@ -274,5 +272,45 @@ void ChangeSelectPin(uint8_t deviceId, uint8_t newState) {
 /**
  * @}
  */
+
+
+
+
+/**
+ * @brief  SPI function to read registers from a slave device
+ * @param  deviceId: application specific device to determine chip select
+ * @param  pBuffer: buffer to retrieve data from a slave
+ * @param  command: command for read
+ * @param  bytes_to_read: number of byte to read
+ * @retval ErrorStatus: error status @ref ErrorStatus
+ *         This parameter can be: SUCCESS or ERROR.
+ */
+ErrorStatus spi_service_read(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_read) {
+
+
+	while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
+	SPI_SetMasterCommunicationMode(SPI_FULL_DUPLEX_MODE);
+
+	ChangeSelectPin(deviceId, RESET);
+
+	for (uint8_t i = 0; i < sizeof(command); i++) {
+		while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
+		SPI_SendData(command[i]);
+		while (RESET == SPI_GetFlagStatus(SPI_FLAG_RNE));
+	}
+
+	for (uint8_t i = 0; i < bytes_to_read; i++) {
+		while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
+		SPI_SendData(0x00);
+		while (RESET == SPI_GetFlagStatus(SPI_FLAG_RNE));
+		pBuffer[i] = SPI_ReceiveData();
+	}
+
+	while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
+
+	ChangeSelectPin(deviceId, SET);
+
+	return SUCCESS;
+}
 
 /******************* (C) COPYRIGHT 2015 STMicroelectronics *****END OF FILE****/

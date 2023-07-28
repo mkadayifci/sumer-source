@@ -61,7 +61,7 @@
 /**
   * @brief SPI Baudrate
   */
-#define SPI_BAUDRATE                    (1000000)
+#define SPI_BAUDRATE                    (8000000)
 
 /**
  * @brief  SPI DR address
@@ -125,6 +125,7 @@
 
 
 ErrorStatus InitSpiService(uint32_t baudrate);
+ErrorStatus spi_service_read(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_read);
 ErrorStatus SpiServiceRead(uint8_t deviceId,uint8_t* pBuffer, uint8_t RegisterAddr, uint8_t NumByteToRead);
 ErrorStatus SpiServiceWrite(uint8_t deviceId,uint8_t RegisterAddr, uint8_t* pBuffer,  uint8_t NumByteToWrite);
 ErrorStatus SpiServiceWriteSingle(uint8_t deviceId, uint8_t RegisterAddr,uint8_t value);

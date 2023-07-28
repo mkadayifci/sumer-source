@@ -454,10 +454,9 @@ extern int errno;
 
 #undef putchar
 
-int putchar(int c)
-{
-  SdkEvalUart_Send_Data((uint8_t) c);
-  return c;
+int putchar(int c) {
+	//SdkEvalUart_Send_Data((uint8_t) c);
+	return c;
 }
 
 

@@ -14,6 +14,7 @@
 * INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
 *******************************************************************************/
 
+#include <debug_functions.h>
 #include <stdio.h>
 #include <string.h>
 #include "gp_timer.h"
@@ -31,13 +32,15 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private defines -----------------------------------------------------------*/
 
-#define CMD_BUFF_SIZE 512
 
-#if SERVER
-  #define SERVER_ADDRESS 0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02
-  #define LOCAL_NAME  'S','P','o','r','t','_','1','2'
-  #define MANUF_DATA_SIZE (27)
-#endif
+#define SERVER_ADDRESS 0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02
+#define LOCAL_NAME  'S','u','m','e','r','A','8','2','E'
+#define MANUF_DATA_SIZE (27)
+
+
+#define CMD_BUFF_SIZE 512
+static char cmd[CMD_BUFF_SIZE];
+static uint16_t cmd_buff_end = 0, cmd_buff_start = 0;
 
 /* Private macros ------------------------------------------------------------*/
 
@@ -50,17 +53,14 @@ volatile uint16_t connection_handle = 0;
 /**
   * @brief  Handle of TX,RX  Characteristics.
   */
-#ifdef CLIENT
-uint16_t tx_handle;
-uint16_t rx_handle;
-#endif
+
 
 /* UUIDs */
 UUID_t UUID_Tx;
 UUID_t UUID_Rx;
 
-static char cmd[CMD_BUFF_SIZE];
-static uint16_t cmd_buff_end = 0, cmd_buff_start = 0;
+
+
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -71,68 +71,73 @@ static uint16_t cmd_buff_end = 0, cmd_buff_start = 0;
 * Input          : none.
 * Return         : Status.
 *******************************************************************************/
-uint8_t SerialPort_DeviceInit(void)
+uint8_t BluetoothDeviceInit(void)
 {
-  uint8_t ret;
-  uint16_t service_handle;
-  uint16_t dev_name_char_handle;
-  uint16_t appearance_char_handle;
-  uint8_t name[] = {'B', 'l', 'u', 'e', 'N', 'R', 'G', '1'};
+	uint8_t ret;
+	uint16_t service_handle;
+	uint16_t dev_name_char_handle;
+	uint16_t appearance_char_handle;
 
-#if SERVER
-  uint8_t role = GAP_PERIPHERAL_ROLE;
-  uint8_t bdaddr[] = {0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02};
-#else
-  uint8_t role = GAP_CENTRAL_ROLE;
-  uint8_t bdaddr[] = {0xbb, 0x00, 0x00, 0xE1, 0x80, 0x02};
-#endif
 
-  /* Configure Public address */
-  ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET, CONFIG_DATA_PUBADDR_LEN, bdaddr);
-  if(ret != BLE_STATUS_SUCCESS){
-    printf("Setting BD_ADDR failed: 0x%02x\r\n", ret);
-    return ret;
-  }
+	uint8_t role = GAP_PERIPHERAL_ROLE;
+	uint8_t bdaddr[] = { 0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02 };
 
-  /* Set the TX power to -2 dBm */
-  aci_hal_set_tx_power_level(1, 4);
+	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
+	CONFIG_DATA_PUBADDR_LEN, bdaddr);
+	if (ret != BLE_STATUS_SUCCESS) {
+		debug_param(MESSAGE_LEVEL_ERROR,
+				DEBUG_CONFIGURATION_INITIALIZATION_CATEGORY,
+				DEBUG_SETTING_BDADDR_ERROR, ret);
+		return ret;
+	}
 
-  /* GATT Init */
-  ret = aci_gatt_init();
-  if (ret != BLE_STATUS_SUCCESS) {
-    printf ("Error in aci_gatt_init(): 0x%02x\r\n", ret);
-    return ret;
-  } else {
-    //printf ("aci_gatt_init() --> SUCCESS\r\n");
-  }
+	aci_hal_set_tx_power_level(1, 4);
 
-  /* GAP Init */
-  ret = aci_gap_init(role, 0x00, 0x08, &service_handle,
-                     &dev_name_char_handle, &appearance_char_handle);
-  if (ret != BLE_STATUS_SUCCESS) {
-    printf ("Error in aci_gap_init() 0x%02x\r\n", ret);
-    return ret;
-  } else {
-    //printf ("aci_gap_init() --> SUCCESS\r\n");
-  }
+	ret = aci_gatt_init();
+	if (ret != BLE_STATUS_SUCCESS) {
+		debug_param(MESSAGE_LEVEL_ERROR,
+				DEBUG_CONFIGURATION_INITIALIZATION_CATEGORY,
+				DEBUG_GATT_INIT_ERROR, ret);
+		return ret;
+	} else {
+		debug(MESSAGE_LEVEL_VERBOSE,
+				DEBUG_CONFIGURATION_INITIALIZATION_CATEGORY,
+				DEBUG_GATT_INIT_SUCCESS);
+	}
 
-  /* Set the device name */
-  ret = aci_gatt_update_char_value_ext(0,service_handle, dev_name_char_handle,0,sizeof(name),0, sizeof(name), name);
-  if (ret != BLE_STATUS_SUCCESS) {
-    printf ("Error in Gatt Update characteristic value 0x%02x\r\n", ret);
-    return ret;
-  } else {
-    //printf ("aci_gatt_update_char_value_ext() --> SUCCESS\r\n");
-  }
+	ret = aci_gap_init(role, 0x00, 0x08, &service_handle, &dev_name_char_handle,
+			&appearance_char_handle);
+	if (ret != BLE_STATUS_SUCCESS) {
+		debug_param(MESSAGE_LEVEL_ERROR,
+				DEBUG_CONFIGURATION_INITIALIZATION_CATEGORY,
+				DEBUG_GAP_INIT_ERROR, ret);
+		return ret;
+	} else {
+		debug(MESSAGE_LEVEL_VERBOSE,
+				DEBUG_CONFIGURATION_INITIALIZATION_CATEGORY,
+				DEBUG_GAP_INIT_SUCCESS);
+	}
 
-#if  SERVER
+	/* Set the device name */
+	/*ret = aci_gatt_update_char_value_ext(0, service_handle,
+			dev_name_char_handle, 0, sizeof(name), 0, sizeof(name), name);
+	if (ret != BLE_STATUS_SUCCESS) {
+		debug_param(MESSAGE_LEVEL_ERROR, DEBUG_GATT_UPDATE_CHAR_ERROR, ret);
+
+		return ret;
+	} else {
+		debug(MESSAGE_LEVEL_VERBOSE, DEBUG_GATT_UPDATE_CHAR_SUCCESS);
+	}*/
+
+
+
   ret = Add_SerialPort_Service();
-  if (ret != BLE_STATUS_SUCCESS) {
-    printf("Error in Add_SerialPort_Service 0x%02x\r\n", ret);
-    return ret;
-  } else {
-    //printf("Add_SerialPort_Service() --> SUCCESS\r\n");
-  }
+	if (ret != BLE_STATUS_SUCCESS) {
+		printf("Error in Add_SerialPort_Service 0x%02x\r\n", ret);
+		return ret;
+	} else {
+		//printf("Add_SerialPort_Service() --> SUCCESS\r\n");
+	}
 
 #if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
   ret = OTA_Add_Btl_Service();
@@ -142,37 +147,36 @@ uint8_t SerialPort_DeviceInit(void)
     printf("Error while adding OTA service.\n");
 #endif /* ST_OTA_FIRMWARE_UPGRADE_SUPPORT */
 
-#endif
+
 
   return BLE_STATUS_SUCCESS;
 }
 
-void Send_Data_Over_BLE(void)
+
+void PushDataToCentral(void)
 {
-  return;
-	if(!APP_FLAG(SEND_DATA) || APP_FLAG(TX_BUFFER_FULL))
-    return;
 
-  while(cmd_buff_start < cmd_buff_end){
-    uint32_t len = MIN(20, cmd_buff_end - cmd_buff_start);
+	if (!APP_FLAG(SEND_DATA) || APP_FLAG(TX_BUFFER_FULL))
+		return;
 
-#if SERVER
-    if(aci_gatt_update_char_value_ext(connection_handle,SerialPortServHandle,TXCharHandle,1,len,0, len,(uint8_t *)cmd+cmd_buff_start)==BLE_STATUS_INSUFFICIENT_RESOURCES){
-#elif CLIENT
-    if(aci_gatt_write_without_resp(connection_handle, rx_handle+1, len, (uint8_t *)cmd+cmd_buff_start)==BLE_STATUS_INSUFFICIENT_RESOURCES){
-#else
-#error "Define SERVER or CLIENT"
-#endif
-      APP_FLAG_SET(TX_BUFFER_FULL);
-      return;
-    }
-    cmd_buff_start += len;
-  }
+	while (cmd_buff_start < cmd_buff_end) {
+		uint32_t len = MIN(20, cmd_buff_end - cmd_buff_start);
+		tBleStatus ret;
+		ret = aci_gatt_update_char_value_ext(connection_handle,
+				SerialPortServHandle, TXCharHandle, 1, len, 0, len,
+				(uint8_t*) cmd + cmd_buff_start);
+		if (ret == BLE_STATUS_INSUFFICIENT_RESOURCES) {
+			APP_FLAG_SET(TX_BUFFER_FULL);
+			return;
+		}
+		cmd_buff_start += len;
+	}
 
-  // All data from buffer have been sent.
-  APP_FLAG_CLEAR(SEND_DATA);
-  cmd_buff_end = 0;
-  NVIC_EnableIRQ(UART_IRQn);
+	// All data from buffer have been sent.
+	APP_FLAG_CLEAR(SEND_DATA);
+	cmd_buff_end = 0;
+	//NVIC_EnableIRQ(UART_IRQn);
+
 }
 
 /*******************************************************************************
@@ -184,35 +188,36 @@ void Send_Data_Over_BLE(void)
 *******************************************************************************/
 void Process_InputData(uint8_t* data_buffer, uint16_t Nb_bytes)
 {
-  uint8_t i;
+	return;
+	/*
+	uint8_t i;
 
-  for (i = 0; i < Nb_bytes; i++)
-  {
-    if(cmd_buff_end >= CMD_BUFF_SIZE-1){
-      cmd_buff_end = 0;
-    }
+	for (i = 0; i < Nb_bytes; i++) {
+		if (cmd_buff_end >= CMD_BUFF_SIZE - 1) {
+			cmd_buff_end = 0;
+		}
 
-    cmd[cmd_buff_end] = data_buffer[i];
-    //SdkEvalComIOSendData(data_buffer[i]);
-    cmd_buff_end++;
+		cmd[cmd_buff_end] = data_buffer[i];
+		//SdkEvalComIOSendData(data_buffer[i]);
+		cmd_buff_end++;
 
-    if((cmd[cmd_buff_end-1] == '\n') || (cmd[cmd_buff_end-1] == '\r')){
-      if(cmd_buff_end != 1){
+		if ((cmd[cmd_buff_end - 1] == '\n')
+				|| (cmd[cmd_buff_end - 1] == '\r')) {
+			if (cmd_buff_end != 1) {
 
-        cmd[cmd_buff_end] = '\0'; // Only a termination character. Not strictly needed.
+				cmd[cmd_buff_end] = '\0'; // Only a termination character. Not strictly needed.
 
-        // Set flag to send data. Disable UART IRQ to avoid overwriting buffer with new incoming data
-        APP_FLAG_SET(SEND_DATA);
-        NVIC_DisableIRQ(UART_IRQn);
+				// Set flag to send data. Disable UART IRQ to avoid overwriting buffer with new incoming data
+				APP_FLAG_SET(SEND_DATA);
+				NVIC_DisableIRQ(UART_IRQn);
 
-        cmd_buff_start = 0;
+				cmd_buff_start = 0;
 
-      }
-      else {
-        cmd_buff_end = 0; // Discard
-      }
-    }
-  }
+			} else {
+				cmd_buff_end = 0; // Discard
+			}
+		}
+	}*/
 }
 
 
@@ -227,17 +232,7 @@ void Make_Connection(void)
 {
   tBleStatus ret;
 
-#if CLIENT
-  tBDAddr bdaddr = {0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02};
 
-  ret = aci_gap_create_connection(0x4000, 0x4000, PUBLIC_ADDR, bdaddr, PUBLIC_ADDR, 40, 40, 0, 60, 2000 , 2000);
-  if (ret != BLE_STATUS_SUCCESS)
-  {
-    printf("Error while starting connection: 0x%04x\r\n", ret);
-    Clock_Wait(100);
-  }
-
-#else
 
   /* NOTE: Updated original Server advertising data in order to be also recognized by ìBLE Sensorî app Client */
 
@@ -290,9 +285,21 @@ void Make_Connection(void)
   }
 
   /* Update Advertising data with manuf_data */
-  aci_gap_update_adv_data(MANUF_DATA_SIZE, manuf_data);
+  //aci_gap_update_adv_data(MANUF_DATA_SIZE, manuf_data);
 
-#endif
+
+}
+uint8_t curr=0;
+void SendData(uint8_t* data,uint8_t length ){
+	curr++;
+	cmd[0] = data[0];
+	for(int i =0 ;i<length;i++){
+		cmd[i]=data[i];
+	}
+
+	cmd_buff_end = length;
+	cmd_buff_start=0;
+	APP_FLAG_SET(SEND_DATA);
 }
 
 /*******************************************************************************
@@ -303,17 +310,13 @@ void Make_Connection(void)
 *******************************************************************************/
 void APP_Tick(void)
 {
-#if CLIENT
-  tBleStatus ret;
-#endif
 
-  if(APP_FLAG(SET_CONNECTABLE))
-  {
-    Make_Connection();
-    APP_FLAG_CLEAR(SET_CONNECTABLE);
-  }
+	if (APP_FLAG(SET_CONNECTABLE)) {
+		Make_Connection();
+		APP_FLAG_CLEAR(SET_CONNECTABLE);
+	}
 
-  Send_Data_Over_BLE();
+	PushDataToCentral();
 
 #if REQUEST_CONN_PARAM_UPDATE
   if(APP_FLAG(CONNECTED) && !APP_FLAG(L2CAP_PARAM_UPD_SENT) && Timer_Expired(&l2cap_req_timer))
@@ -323,59 +326,6 @@ void APP_Tick(void)
   }
 #endif
 
-#if CLIENT
-  /* Start TX handle Characteristic discovery if not yet done */
-  if (APP_FLAG(CONNECTED) && !APP_FLAG(END_READ_TX_CHAR_HANDLE))
-  {
-    if (!APP_FLAG(START_READ_TX_CHAR_HANDLE))
-    {
-      /* Discovery TX characteristic handle by UUID 128 bits */
-
-      const uint8_t charUuid128_TX[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x96,0x9e,0xe2,0x11,0x9e,0xb1,0xe1,0xf2,0x73,0xd9};
-
-      Osal_MemCpy(&UUID_Tx.UUID_16, charUuid128_TX, 16);
-      ret = aci_gatt_disc_char_by_uuid(connection_handle, 0x0001, 0xFFFF,UUID_TYPE_128,&UUID_Tx);
-      if (ret != 0)
-        printf ("Error in aci_gatt_disc_char_by_uuid() for TX characteristic: 0x%04xr\n", ret);
-      else
-        printf ("aci_gatt_disc_char_by_uuid() for TX characteristic --> SUCCESS\r\n");
-      APP_FLAG_SET(START_READ_TX_CHAR_HANDLE);
-    }
-  }
-  /* Start RX handle Characteristic discovery if not yet done */
-  else if (APP_FLAG(CONNECTED) && !APP_FLAG(END_READ_RX_CHAR_HANDLE))
-  {
-    /* Discovery RX characteristic handle by UUID 128 bits */
-    if (!APP_FLAG(START_READ_RX_CHAR_HANDLE))
-    {
-      /* Discovery TX characteristic handle by UUID 128 bits */
-
-      const uint8_t charUuid128_RX[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x96,0x9e,0xe2,0x11,0x9e,0xb1,0xe2,0xf2,0x73,0xd9};
-
-      Osal_MemCpy(&UUID_Rx.UUID_16, charUuid128_RX, 16);
-      ret = aci_gatt_disc_char_by_uuid(connection_handle, 0x0001, 0xFFFF,UUID_TYPE_128,&UUID_Rx);
-      if (ret != 0)
-        printf ("Error in aci_gatt_disc_char_by_uuid() for RX characteristic: 0x%04xr\n", ret);
-      else
-        printf ("aci_gatt_disc_char_by_uuid() for RX characteristic --> SUCCESS\r\n");
-
-      APP_FLAG_SET(START_READ_RX_CHAR_HANDLE);
-    }
-  }
-
-  if(APP_FLAG(CONNECTED) && APP_FLAG(END_READ_TX_CHAR_HANDLE) && APP_FLAG(END_READ_RX_CHAR_HANDLE) && !APP_FLAG(NOTIFICATIONS_ENABLED))
-  {
-    uint8_t client_char_conf_data[] = {0x01, 0x00}; // Enable notifications
-    struct timer t;
-    Timer_Set(&t, CLOCK_SECOND*10);
-
-    while(aci_gatt_write_char_desc(connection_handle, tx_handle+2, 2, client_char_conf_data)==BLE_STATUS_NOT_ALLOWED){ //TX_HANDLE;
-        // Radio is busy.
-        if(Timer_Expired(&t)) break;
-    }
-    APP_FLAG_SET(NOTIFICATIONS_ENABLED);
-  }
-#endif
 
 }/* end APP_Tick() */
 
@@ -459,78 +409,7 @@ void aci_gatt_attribute_modified_event(uint16_t Connection_Handle,
   Attribute_Modified_CB(Attr_Handle, Attr_Data_Length, Attr_Data);
 }
 
-#if CLIENT
 
-/*******************************************************************************
- * Function Name  : aci_gatt_notification_event.
- * Description    : This event occurs when a notification is received.
- * Input          : See file bluenrg1_events.h
- * Output         : See file bluenrg1_events.h
- * Return         : See file bluenrg1_events.h
- *******************************************************************************/
-void aci_gatt_notification_event(uint16_t Connection_Handle,
-                                 uint16_t Attribute_Handle,
-                                 uint8_t Attribute_Value_Length,
-                                 uint8_t Attribute_Value[])
-{
-  uint16_t attr_handle;
-
-  attr_handle = Attribute_Handle;
-    if(attr_handle == tx_handle+1)
-    {
-      for(int i = 0; i < Attribute_Value_Length; i++)
-          printf("%c", Attribute_Value[i]);
-    }
-}
-
-/*******************************************************************************
- * Function Name  : aci_gatt_disc_read_char_by_uuid_resp_event.
- * Description    : This event occurs when a discovery read characteristic by UUID response.
- * Input          : See file bluenrg1_events.h
- * Output         : See file bluenrg1_events.h
- * Return         : See file bluenrg1_events.h
- *******************************************************************************/
-void aci_gatt_disc_read_char_by_uuid_resp_event(uint16_t Connection_Handle,
-                                                uint16_t Attribute_Handle,
-                                                uint8_t Attribute_Value_Length,
-                                                uint8_t Attribute_Value[])
-{
-  printf("aci_gatt_disc_read_char_by_uuid_resp_event, Connection Handle: 0x%04X\n", Connection_Handle);
-  if (APP_FLAG(START_READ_TX_CHAR_HANDLE) && !APP_FLAG(END_READ_TX_CHAR_HANDLE))
-  {
-    tx_handle = Attribute_Handle;
-    printf("TX Char Handle 0x%04X\n", tx_handle);
-  }
-  else if (APP_FLAG(START_READ_RX_CHAR_HANDLE) && !APP_FLAG(END_READ_RX_CHAR_HANDLE))
-  {
-    rx_handle = Attribute_Handle;
-    printf("RX Char Handle 0x%04X\n", rx_handle);
-  }
-}
-
-/*******************************************************************************
- * Function Name  : aci_gatt_proc_complete_event.
- * Description    : This event occurs when a GATT procedure complete is received.
- * Input          : See file bluenrg1_events.h
- * Output         : See file bluenrg1_events.h
- * Return         : See file bluenrg1_events.h
- *******************************************************************************/
-void aci_gatt_proc_complete_event(uint16_t Connection_Handle,
-                                  uint8_t Error_Code)
-{
-  if (APP_FLAG(START_READ_TX_CHAR_HANDLE) && !APP_FLAG(END_READ_TX_CHAR_HANDLE))
-  {
-    printf("aci_GATT_PROCEDURE_COMPLETE_Event for START_READ_TX_CHAR_HANDLE \r\n");
-    APP_FLAG_SET(END_READ_TX_CHAR_HANDLE);
-  }
-  else if (APP_FLAG(START_READ_RX_CHAR_HANDLE) && !APP_FLAG(END_READ_RX_CHAR_HANDLE))
-  {
-    printf("aci_GATT_PROCEDURE_COMPLETE_Event for START_READ_TX_CHAR_HANDLE \r\n");
-    APP_FLAG_SET(END_READ_RX_CHAR_HANDLE);
-  }
-}
-
-#endif /* CLIENT */
 
 /*******************************************************************************
  * Function Name  : aci_gatt_tx_pool_available_event.

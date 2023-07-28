@@ -1,5 +1,5 @@
-#ifndef _SERIAPORT_CONFIG_H_
-#define _SERIAPORT_CONFIG_H_
+#ifndef _SUMER_CONFIG_H_
+#define _SUMER_CONFIG_H_
 
 #include "bluenrg1_stack.h"
 #include "stack_user_cfg.h"
@@ -9,6 +9,7 @@
  * These constants and variables are used from the BlueNRG-1_2stack to reserve RAM and FLASH
  * according the application requests
  */
+
 
 /* Default number of link */
 #define MIN_NUM_LINK                1
@@ -199,4 +200,5 @@ const BlueNRG_Stack_Initialization_t BlueNRG_Stack_Init_params = {
     CONFIG_TABLE,
 };
 
-#endif // _SERIAPORT_CONFIG_H_
+
+#endif // _SUMER_CONFIG_H_

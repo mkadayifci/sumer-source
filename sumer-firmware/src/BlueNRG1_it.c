@@ -22,12 +22,14 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <debug_functions.h>
 #include "BlueNRG1_it.h"
 #include "BlueNRG1_conf.h"
 #include "ble_const.h"
 #include "bluenrg1_stack.h"
 #include "clock.h"
 #include "Accelerometer.h"
+#include "SPI_Service.h"
 
 /** @addtogroup BlueNRG1_StdPeriph_Examples
   * @{
@@ -91,10 +93,18 @@ void SysTick_Handler(void)
 {
   SysCount_Handler(); 
 }
+uint8_t rBuffer1;
+uint8_t rBuffer2;
 
 void GPIO_Handler(void)
 {
-		SetPowerControl();
+
+
+	SpiServiceRead(1, &rBuffer1, ADXL362_REG_STATUS, 1);
+
+	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, rBuffer1);
+	SetPowerControl();
+	GPIO_ClearITPendingBit(GPIO_Pin_5);
 }
 /******************************************************************************/
 /*                 BlueNRG-1 Peripherals Interrupt Handlers                   */

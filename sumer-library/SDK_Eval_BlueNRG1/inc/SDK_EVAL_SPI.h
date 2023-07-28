@@ -62,7 +62,7 @@
 /**
   * @brief SPI Baudrate
   */
-#define SPI_BAUDRATE                    (1000000)
+//#define SPI_BAUDRATE                    (1000000)
    
 /**
  * @brief  SPI DR address

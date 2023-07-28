@@ -1,3 +1,5 @@
+#include "stdint.h"
+
 #ifndef _Accelerometer_
 #define _Accelerometer_
 
@@ -49,6 +51,9 @@
 
 #define ADXL362_SOFT_RESET_VAL			0x52
 
+#define ADXL362_SPI_COMMAND_WRITE		0x0A
+#define ADXL362_SPI_COMMAND_READ		0x0B
+#define ADXL362_SPI_COMMAND_FIFO_READ	0x0D
 
 
 #define ADXL362_SET						0b1
@@ -81,5 +86,6 @@ void SetPowerControl();
 void DoReset();
 void SleepSensor();
 void InitEXTI();
+void accelerometer_read_FIFO(uint8_t * pBuffer,uint8_t length);
 
 #endif /* _Accelerometer_ */
