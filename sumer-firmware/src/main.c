@@ -32,7 +32,7 @@ NOTEs:
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include <accelerometer.h>
+#include "accelerometer.h"
 #include <stdio.h>
 #include <string.h>
 #include <Sumer_config.h>
@@ -78,8 +78,8 @@ int main(void)
 		while (1);
 	}
 
-	InitSpiService(SPI_BAUDRATE);
-InitAccelerometer();
+	spi_service_init(SPI_BAUDRATE);
+	accelerometer_init();
 
 	ret = BluetoothDeviceInit();
 	if (ret != BLE_STATUS_SUCCESS) {
@@ -95,7 +95,7 @@ InitAccelerometer();
 	while (1) {
 		BTLE_StackTick();
 
-		Delay();
+		delay();
 
 		//uint8_t *read;
 		//SpiServiceRead(2, read, 0x9F, 1);
@@ -103,7 +103,7 @@ InitAccelerometer();
 		APP_Tick();
 		//BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
 		uint8_t buffer[255];
-		accelerometer_read_FIFO((uint8_t * )&buffer, sizeof(buffer));
+		//accelerometer_read_FIFO((uint8_t * )&buffer, sizeof(buffer));
 
 #if ST_USE_OTA_SERVICE_MANAGER_APPLICATION
     if (SdkEvalPushButtonGetState(USER_BUTTON) == RESET)

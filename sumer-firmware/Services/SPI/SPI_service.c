@@ -98,7 +98,7 @@ static uint8_t spi_irq_state = SEND_START;*/
  * @retval ErrorStatus: error status @ref ErrorStatus
  *         This parameter can be: SUCCESS or ERROR.
  */
-ErrorStatus InitSpiService(uint32_t baudrate) {
+ErrorStatus spi_service_init(uint32_t baudrate) {
 	SPI_InitType SPI_InitStructure;
 	GPIO_InitType GPIO_InitStructure;
 
@@ -116,16 +116,14 @@ ErrorStatus InitSpiService(uint32_t baudrate) {
 	
 	
 	/* Configure CS pins */
-	GPIO_InitStructure.GPIO_Pin = SPI_PERIPH_SENSOR_PIN_ADXL;
+	GPIO_InitStructure.GPIO_Pin = SPI_PERIPH_PIN_ADXL | SPI_PERIPH_PIN_FLASH | SPI_PERIPH_PIN_CLOCK;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Output;
 	GPIO_Init(&GPIO_InitStructure);
 
-	GPIO_InitStructure.GPIO_Pin = SPI_PERIPH_SENSOR_PIN_FLASH;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Output;
-	GPIO_Init(&GPIO_InitStructure);
 
 	SPI_ADXL_CS_HIGH();
 	SPI_FLASH_CS_HIGH();
+	SPI_CLOCK_CS_HIGH();
 
 	/* Configure SPI in master mode */
 	SPI_StructInit(&SPI_InitStructure);
@@ -251,14 +249,14 @@ ErrorStatus SpiServiceWriteSingle( uint8_t deviceId,uint8_t RegisterAddr,uint8_t
 void ChangeSelectPin(uint8_t deviceId, uint8_t newState) {
 	if (newState) {
 		if (deviceId == SPI_DEVICE_ID_ADXL)
-			GPIO_SetBits(SPI_PERIPH_SENSOR_PIN_ADXL);
+			GPIO_SetBits(SPI_PERIPH_PIN_ADXL);
 		else if (deviceId == SPI_DEVICE_ID_FLASH)
-			GPIO_SetBits(SPI_PERIPH_SENSOR_PIN_FLASH);
+			GPIO_SetBits(SPI_PERIPH_PIN_FLASH);
 	} else {
 		if (deviceId == SPI_DEVICE_ID_ADXL)
-			GPIO_ResetBits(SPI_PERIPH_SENSOR_PIN_ADXL);
+			GPIO_ResetBits(SPI_PERIPH_PIN_ADXL);
 		else if (deviceId == SPI_DEVICE_ID_FLASH)
-			GPIO_ResetBits(SPI_PERIPH_SENSOR_PIN_FLASH);
+			GPIO_ResetBits(SPI_PERIPH_PIN_FLASH);
 	}
 }
 /**
@@ -312,5 +310,36 @@ ErrorStatus spi_service_read(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[
 
 	return SUCCESS;
 }
+
+
+
+
+
+/**
+ * @brief  SPI function to read registers from a slave device
+ * @param  deviceId: application specific device to determine chip select
+ * @param  pBuffer: buffer to retrieve data from a slave
+ * @param  command: command for read
+ * @param  bytes_to_write: number of byte to write
+ * @retval ErrorStatus: error status @ref ErrorStatus
+ *         This parameter can be: SUCCESS or ERROR.
+ */
+ErrorStatus spi_service_write(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_write){
+
+	SPI_SetMasterCommunicationMode(SPI_TRANSMIT_MODE);
+	ChangeSelectPin(deviceId, RESET);
+
+	for (uint8_t i = 0; i < bytes_to_write; i++) {
+		SPI_SendData(command[i]);
+	}
+
+	/* Wait until data transfer is finished */
+	while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
+
+	ChangeSelectPin(deviceId, SET);
+	return SUCCESS;
+
+}
+
 
 /******************* (C) COPYRIGHT 2015 STMicroelectronics *****END OF FILE****/

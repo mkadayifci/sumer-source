@@ -39,6 +39,8 @@ extern volatile int app_flags;
 #define L2CAP_PARAM_UPD_SENT    0x10
 #define TX_BUFFER_FULL          0x20
 #define SEND_DATA               0x40
+#define SCRIBE_MODE             0x80
+
 /* Added flags for handling TX, RX characteristics discovery */
 #define START_READ_TX_CHAR_HANDLE 0x100
 #define END_READ_TX_CHAR_HANDLE   0x200

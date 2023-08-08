@@ -30,6 +30,9 @@
 #include "clock.h"
 #include "Accelerometer.h"
 #include "SPI_Service.h"
+#include "scribe.h"
+#include "app_state.h"
+
 
 /** @addtogroup BlueNRG1_StdPeriph_Examples
   * @{
@@ -93,18 +96,17 @@ void SysTick_Handler(void)
 {
   SysCount_Handler(); 
 }
-uint8_t rBuffer1;
-uint8_t rBuffer2;
+
+
 
 void GPIO_Handler(void)
 {
 
 
-	SpiServiceRead(1, &rBuffer1, ADXL362_REG_STATUS, 1);
-
-	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, rBuffer1);
-	SetPowerControl();
+	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
+	scribe_start();
 	GPIO_ClearITPendingBit(GPIO_Pin_5);
+	accelerometer_sleep_sensor();
 }
 /******************************************************************************/
 /*                 BlueNRG-1 Peripherals Interrupt Handlers                   */

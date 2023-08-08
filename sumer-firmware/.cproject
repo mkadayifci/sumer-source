@@ -77,7 +77,7 @@
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/inc}&quot;"/>
                                     									
-                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Services}&quot;"/>
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Services/Include}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="../../sumer-library/hal/inc"/>
                                     									

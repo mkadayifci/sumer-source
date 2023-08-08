@@ -1,4 +1,5 @@
 #include "stdint.h"
+#include "hal_types.h"
 
 #ifndef _Accelerometer_
 #define _Accelerometer_
@@ -78,14 +79,14 @@ typedef struct
 
 
 
-void InitAccelerometer();
+void accelerometer_init();
 
 
-void Delay();
-void SetPowerControl();
-void DoReset();
-void SleepSensor();
+void delay();
+void accelerometer_reset();
+void accelerometer_sleep_sensor();
 void InitEXTI();
 void accelerometer_read_FIFO(uint8_t * pBuffer,uint8_t length);
-
+ErrorStatus accelerometer_spi_write_single(uint8_t command, uint8_t value);
+uint8_t accelerometer_spi_read_single(uint8_t command) ;
 #endif /* _Accelerometer_ */

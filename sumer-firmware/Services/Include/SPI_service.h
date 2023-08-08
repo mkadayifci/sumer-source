@@ -113,19 +113,24 @@
 #define SPI_DEVICE_ID_ADXL						1
 #define SPI_DEVICE_ID_FLASH						2
 
-#define SPI_PERIPH_SENSOR_PIN_ADXL				GPIO_Pin_1
-#define SPI_PERIPH_SENSOR_PIN_FLASH				GPIO_Pin_11
+#define SPI_PERIPH_PIN_ADXL						GPIO_Pin_1
+#define SPI_PERIPH_PIN_FLASH					GPIO_Pin_11
+#define SPI_PERIPH_PIN_CLOCK					GPIO_Pin_8
 
-#define SPI_ADXL_CS_HIGH()                  	GPIO_SetBits(SPI_PERIPH_SENSOR_PIN_ADXL)
-#define SPI_ADXL_CS_LOW()                   	GPIO_ResetBits(SPI_PERIPH_SENSOR_PIN_ADXL)
+#define SPI_ADXL_CS_HIGH()                  	GPIO_SetBits(SPI_PERIPH_PIN_ADXL)
+#define SPI_ADXL_CS_LOW()                   	GPIO_ResetBits(SPI_PERIPH_PIN_ADXL)
 
-#define SPI_FLASH_CS_HIGH()                  	GPIO_SetBits(SPI_PERIPH_SENSOR_PIN_FLASH)
-#define SPI_FLASH_CS_LOW()                   	GPIO_ResetBits(SPI_PERIPH_SENSOR_PIN_FLASH)
+#define SPI_FLASH_CS_HIGH()                  	GPIO_SetBits(SPI_PERIPH_PIN_FLASH)
+#define SPI_FLASH_CS_LOW()                   	GPIO_ResetBits(SPI_PERIPH_PIN_FLASH)
+
+#define SPI_CLOCK_CS_HIGH()                  	GPIO_SetBits(SPI_PERIPH_PIN_CLOCK)
+#define SPI_CLOCK_CS_LOW()                   	GPIO_ResetBits(SPI_PERIPH_PIN_CLOCK)
 
 
-
-ErrorStatus InitSpiService(uint32_t baudrate);
+ErrorStatus spi_service_init(uint32_t baudrate);
 ErrorStatus spi_service_read(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_read);
+ErrorStatus spi_service_write(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_write);
+
 ErrorStatus SpiServiceRead(uint8_t deviceId,uint8_t* pBuffer, uint8_t RegisterAddr, uint8_t NumByteToRead);
 ErrorStatus SpiServiceWrite(uint8_t deviceId,uint8_t RegisterAddr, uint8_t* pBuffer,  uint8_t NumByteToWrite);
 ErrorStatus SpiServiceWriteSingle(uint8_t deviceId, uint8_t RegisterAddr,uint8_t value);

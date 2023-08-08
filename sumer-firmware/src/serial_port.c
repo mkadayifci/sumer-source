@@ -153,7 +153,7 @@ uint8_t BluetoothDeviceInit(void)
 }
 
 
-void PushDataToCentral(void)
+void flush_ble_serial_buffer(void)
 {
 
 	if (!APP_FLAG(SEND_DATA) || APP_FLAG(TX_BUFFER_FULL))
@@ -162,9 +162,11 @@ void PushDataToCentral(void)
 	while (cmd_buff_start < cmd_buff_end) {
 		uint32_t len = MIN(20, cmd_buff_end - cmd_buff_start);
 		tBleStatus ret;
-		ret = aci_gatt_update_char_value_ext(connection_handle,
-				SerialPortServHandle, TXCharHandle, 1, len, 0, len,
-				(uint8_t*) cmd + cmd_buff_start);
+		ret = aci_gatt_update_char_value_ext(
+											connection_handle,
+											SerialPortServHandle,
+											TXCharHandle, 1, len, 0, len,
+											(uint8_t*) cmd + cmd_buff_start);
 		if (ret == BLE_STATUS_INSUFFICIENT_RESOURCES) {
 			APP_FLAG_SET(TX_BUFFER_FULL);
 			return;
@@ -172,12 +174,30 @@ void PushDataToCentral(void)
 		cmd_buff_start += len;
 	}
 
+
+
 	// All data from buffer have been sent.
 	APP_FLAG_CLEAR(SEND_DATA);
 	cmd_buff_end = 0;
+	cmd_buff_start=0;
 	//NVIC_EnableIRQ(UART_IRQn);
 
 }
+
+void send_data_over_ble_serial(uint8_t* data,uint8_t length ){
+
+
+	//Burada buffer asilirsa bi sey yapmak lazim
+	for(int i =0 ;i<length;i++){
+
+		cmd[cmd_buff_end]=data[i];
+		cmd_buff_end++;
+
+	}
+
+	APP_FLAG_SET(SEND_DATA);
+}
+
 
 /*******************************************************************************
 * Function Name  : Process_InputData.
@@ -289,18 +309,7 @@ void Make_Connection(void)
 
 
 }
-uint8_t curr=0;
-void SendData(uint8_t* data,uint8_t length ){
-	curr++;
-	cmd[0] = data[0];
-	for(int i =0 ;i<length;i++){
-		cmd[i]=data[i];
-	}
 
-	cmd_buff_end = length;
-	cmd_buff_start=0;
-	APP_FLAG_SET(SEND_DATA);
-}
 
 /*******************************************************************************
 * Function Name  : APP_Tick.
@@ -316,7 +325,7 @@ void APP_Tick(void)
 		APP_FLAG_CLEAR(SET_CONNECTABLE);
 	}
 
-	PushDataToCentral();
+	flush_ble_serial_buffer();
 
 #if REQUEST_CONN_PARAM_UPDATE
   if(APP_FLAG(CONNECTED) && !APP_FLAG(L2CAP_PARAM_UPD_SENT) && Timer_Expired(&l2cap_req_timer))

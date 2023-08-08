@@ -11,6 +11,8 @@
  */
 
 
+
+
 /* Default number of link */
 #define MIN_NUM_LINK                1
 /* Default number of GAP and GATT services */
