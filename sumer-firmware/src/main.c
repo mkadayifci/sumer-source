@@ -79,8 +79,9 @@ int main(void)
 	}
 
 	spi_service_init(SPI_BAUDRATE);
-	accelerometer_init();
 
+	accelerometer_init();
+	scribe_start();
 	ret = BluetoothDeviceInit();
 	if (ret != BLE_STATUS_SUCCESS) {
 		printf("SerialPort_DeviceInit()--> Failed 0x%02x\r\n", ret);
@@ -88,10 +89,17 @@ int main(void)
 	}
 
 #if ST_USE_OTA_SERVICE_MANAGER_APPLICATION
-  SdkEvalPushButtonInit(USER_BUTTON); 
+  //SdkEvalPushButtonInit(USER_BUTTON);
 #endif /* ST_USE_OTA_SERVICE_MANAGER_APPLICATION */
 
   	int rBuffer2;
+#if ST_USE_OTA_SERVICE_MANAGER_APPLICATION
+    //if (SdkEvalPushButtonGetState(USER_BUTTON) == RESET)
+    //{
+      OTA_Jump_To_Service_Manager_Application();
+    //}
+#endif /* ST_USE_OTA_SERVICE_MANAGER_APPLICATION */
+
 	while (1) {
 		BTLE_StackTick();
 
@@ -102,15 +110,9 @@ int main(void)
 
 		APP_Tick();
 		//BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
-		uint8_t buffer[255];
-		//accelerometer_read_FIFO((uint8_t * )&buffer, sizeof(buffer));
 
-#if ST_USE_OTA_SERVICE_MANAGER_APPLICATION
-    if (SdkEvalPushButtonGetState(USER_BUTTON) == RESET)
-    {
-      OTA_Jump_To_Service_Manager_Application();
-    }
-#endif /* ST_USE_OTA_SERVICE_MANAGER_APPLICATION */
+
+
 	}
 }
 

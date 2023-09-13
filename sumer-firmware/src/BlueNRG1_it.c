@@ -101,12 +101,34 @@ void SysTick_Handler(void)
 
 void GPIO_Handler(void)
 {
+	if(GPIO_GetITStatusBit(GPIO_Pin_12)== SET){//Activity Detected
+		debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
+		//scribe_start();
+		//accelerometer_sleep_sensor();
+
+		accelerometer_spi_read_single(ADXL362_REG_STATUS);
+		GPIO_ClearITPendingBit(GPIO_Pin_12);
 
 
-	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
-	scribe_start();
-	GPIO_ClearITPendingBit(GPIO_Pin_5);
-	accelerometer_sleep_sensor();
+
+	}
+
+	if(GPIO_GetITStatusBit(GPIO_Pin_5)== SET){//FIFO Watermark
+		debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_ACC_FIFO_WATERMARK);
+
+		accelerometer_spi_read_single(ADXL362_REG_STATUS);
+		uint8_t volatile buffer[255];
+		accelerometer_read_FIFO((uint8_t * )&buffer, sizeof(buffer));
+		storage_write_acceleration_page(&buffer,1);
+		accelerometer_spi_read_single(ADXL362_REG_STATUS);
+		GPIO_ClearITPendingBit(GPIO_Pin_5);
+		/* Enable the interrupt */
+		//GPIO_EXTICmd(GPIO_Pin_12, ENABLE);
+
+	}
+
+
+
 }
 /******************************************************************************/
 /*                 BlueNRG-1 Peripherals Interrupt Handlers                   */

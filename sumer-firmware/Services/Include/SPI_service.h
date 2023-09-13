@@ -97,6 +97,10 @@
  * @}
  */
 
+
+#define SPI_DUMMY	            		 0x00
+
+
 /**
  * @defgroup SDK_EVAL_SPI_Exported_Macros                       SDK EVAL SPI Exported Macros
  * @{
@@ -112,6 +116,7 @@
 
 #define SPI_DEVICE_ID_ADXL						1
 #define SPI_DEVICE_ID_FLASH						2
+#define SPI_DEVICE_ID_CLOCK						3
 
 #define SPI_PERIPH_PIN_ADXL						GPIO_Pin_1
 #define SPI_PERIPH_PIN_FLASH					GPIO_Pin_11
@@ -128,12 +133,15 @@
 
 
 ErrorStatus spi_service_init(uint32_t baudrate);
-ErrorStatus spi_service_read(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_read);
-ErrorStatus spi_service_write(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_write);
+ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[],uint8_t command_length,  uint8_t bytes_to_read);
+ErrorStatus spi_service_write(uint8_t deviceId,uint8_t command[], uint16_t command_length);
+ErrorStatus spi_service_write_data(uint8_t deviceId,uint8_t command[],uint16_t command_length,uint8_t *pBuffer, uint16_t bytes_to_write);
 
 ErrorStatus SpiServiceRead(uint8_t deviceId,uint8_t* pBuffer, uint8_t RegisterAddr, uint8_t NumByteToRead);
 ErrorStatus SpiServiceWrite(uint8_t deviceId,uint8_t RegisterAddr, uint8_t* pBuffer,  uint8_t NumByteToWrite);
 ErrorStatus SpiServiceWriteSingle(uint8_t deviceId, uint8_t RegisterAddr,uint8_t value);
+
+
 void ChangeSelectPin(uint8_t deviceId, uint8_t newState);
 
 /**

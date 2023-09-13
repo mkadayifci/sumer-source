@@ -22,17 +22,19 @@ void command_processor_process_command(uint8_t *receiveBuffer, uint8_t length) {
 	}
 }
 
-
 void command_processor_send_version_response(void) {
-	uint8_t response[] = { COMMAND_GET_VERSION, FIRMWARE_VERSION_MAJOR,
-			FIRMWARE_VERSION_MINOR };
+	uint8_t response[] = { 	COMMAND_GET_VERSION,
+							FIRMWARE_VERSION_MAJOR,
+							FIRMWARE_VERSION_MINOR,
+							ASCII_LINE_FEED };
 	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
 }
+
 void command_processor_send_total_written_page_count(void) {
 	uint8_t response[] = {
 			COMMAND_SCRIBE_GET_WRITTEN_PAGE_COUNT,
 			0x24, //H
-			0x01,
-			ASCII_LINE_FEED  };//L
+			0x01, //L
+			ASCII_LINE_FEED  };
 	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
 }

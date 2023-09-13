@@ -42,8 +42,8 @@
 /**
  * @brief  SPI buffers used for DMA application
  */
-volatile uint8_t spi_buffer_tx[SPI_BUFF_SIZE];
-volatile uint8_t spi_buffer_rx[SPI_BUFF_SIZE];
+volatile uint8_t spi_buffer_tx[10];
+volatile uint8_t spi_buffer_rx[10];
 
 /**
  * @brief  SPI flag set at end of transaction
@@ -283,7 +283,7 @@ void ChangeSelectPin(uint8_t deviceId, uint8_t newState) {
  * @retval ErrorStatus: error status @ref ErrorStatus
  *         This parameter can be: SUCCESS or ERROR.
  */
-ErrorStatus spi_service_read(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_read) {
+ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[],uint8_t command_length, uint8_t bytes_to_read) {
 
 
 	while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
@@ -291,10 +291,11 @@ ErrorStatus spi_service_read(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[
 
 	ChangeSelectPin(deviceId, RESET);
 
-	for (uint8_t i = 0; i < sizeof(command); i++) {
+	for (uint8_t i = 0; i < command_length; i++) {
 		while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
 		SPI_SendData(command[i]);
 		while (RESET == SPI_GetFlagStatus(SPI_FLAG_RNE));
+		SPI_ReceiveData();
 	}
 
 	for (uint8_t i = 0; i < bytes_to_read; i++) {
@@ -324,17 +325,48 @@ ErrorStatus spi_service_read(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[
  * @retval ErrorStatus: error status @ref ErrorStatus
  *         This parameter can be: SUCCESS or ERROR.
  */
-ErrorStatus spi_service_write(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[], uint8_t bytes_to_write){
+ErrorStatus spi_service_write(uint8_t deviceId,uint8_t command[], uint16_t command_length){
 
 	SPI_SetMasterCommunicationMode(SPI_TRANSMIT_MODE);
 	ChangeSelectPin(deviceId, RESET);
 
-	for (uint8_t i = 0; i < bytes_to_write; i++) {
+	for (uint16_t i = 0; i < command_length; i++) {
+		SPI_SendData(command[i]);
+	}
+	while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
+
+
+	ChangeSelectPin(deviceId, SET);
+	return SUCCESS;
+
+}
+
+/**
+ * @brief  SPI function to read registers from a slave device
+ * @param  deviceId: application specific device to determine chip select
+ * @param  pBuffer: buffer to retrieve data from a slave
+ * @param  command: command for read
+ * @param  bytes_to_write: number of byte to write
+ * @retval ErrorStatus: error status @ref ErrorStatus
+ *         This parameter can be: SUCCESS or ERROR.
+ */
+ErrorStatus spi_service_write_data(uint8_t deviceId,uint8_t command[],uint16_t command_length,uint8_t *pBuffer, uint16_t bytes_to_write){
+
+	SPI_SetMasterCommunicationMode(SPI_TRANSMIT_MODE);
+	ChangeSelectPin(deviceId, RESET);
+
+	for (uint16_t i = 0; i < command_length; i++) {
 		SPI_SendData(command[i]);
 	}
 
-	/* Wait until data transfer is finished */
+
+	for (uint8_t i = 0; i < bytes_to_write; i++) {
+		SPI_SendData(pBuffer[i]);
+	}
+
+
 	while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
+
 
 	ChangeSelectPin(deviceId, SET);
 	return SUCCESS;

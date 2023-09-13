@@ -4,20 +4,18 @@
  *  Created on: Aug 8, 2023
  *      Author: mkadayifci
  */
-#include "clock.h"
-
+#include "stdio.h"
+#include "bluenrg_x_device.h"
+#include "accelerometer.h"
 void scribe_start(void){
 
-	uint32_t volatile startTick = Clock_Time();
-	delay();
-	delay();
-	delay();
-	delay();
-	delay();
-	delay();
-	delay();
-	delay();
-	delay();
-	uint32_t volatile endTick = Clock_Time();
-	delay();
+	accelerometer_set_fifo_to_stream_mode();
+}
+
+void scribe_write_data(){
+	uint8_t volatile buffer[256];
+	accelerometer_read_FIFO((uint8_t * )&buffer, sizeof(buffer));
+
+	__NOP();
+
 }
