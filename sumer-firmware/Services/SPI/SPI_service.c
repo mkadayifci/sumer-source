@@ -252,11 +252,15 @@ void ChangeSelectPin(uint8_t deviceId, uint8_t newState) {
 			GPIO_SetBits(SPI_PERIPH_PIN_ADXL);
 		else if (deviceId == SPI_DEVICE_ID_FLASH)
 			GPIO_SetBits(SPI_PERIPH_PIN_FLASH);
+		else if (deviceId == SPI_DEVICE_ID_CLOCK)
+			GPIO_SetBits(SPI_PERIPH_PIN_CLOCK);
 	} else {
 		if (deviceId == SPI_DEVICE_ID_ADXL)
 			GPIO_ResetBits(SPI_PERIPH_PIN_ADXL);
 		else if (deviceId == SPI_DEVICE_ID_FLASH)
 			GPIO_ResetBits(SPI_PERIPH_PIN_FLASH);
+		else if (deviceId == SPI_DEVICE_ID_CLOCK)
+			GPIO_ResetBits(SPI_PERIPH_PIN_CLOCK);
 	}
 }
 /**

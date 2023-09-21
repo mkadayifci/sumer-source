@@ -46,8 +46,9 @@ NOTEs:
 #include "SPI_Service.h"
 #include "serial_port.h"
 #include "clock.h"
-
-
+#include "sumer_clock.h"
+#include "scribe.h"
+#include "command_processor.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -66,7 +67,6 @@ NOTEs:
 int main(void) 
 {
 	uint8_t ret;
-
 	SystemInit();
 	Clock_Init();
 
@@ -79,8 +79,8 @@ int main(void)
 	}
 
 	spi_service_init(SPI_BAUDRATE);
-
-	accelerometer_init();
+	sumer_clock_init();
+	//accelerometer_init();
 	scribe_start();
 	ret = BluetoothDeviceInit();
 	if (ret != BLE_STATUS_SUCCESS) {
@@ -102,16 +102,9 @@ int main(void)
 
 	while (1) {
 		BTLE_StackTick();
-
-		delay();
-
-		//uint8_t *read;
-		//SpiServiceRead(2, read, 0x9F, 1);
-
+		command_processor_parse_buffer();
 		APP_Tick();
 		//BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
-
-
 
 	}
 }

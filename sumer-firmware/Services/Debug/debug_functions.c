@@ -11,7 +11,7 @@ void debug(uint8_t message_type, uint8_t message, uint8_t message_secondary) {
 						message_type,
 						message,
 						message_secondary,
-						ASCII_LINE_FEED };
+						ASCII_CARRIAGE_RETURN };
 
 	send_data_over_ble_serial(data,DEBUG_WITHOUT_PARAMS_MESSAGE_LENGTH);
 

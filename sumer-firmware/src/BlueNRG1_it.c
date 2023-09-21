@@ -101,7 +101,8 @@ void SysTick_Handler(void)
 
 void GPIO_Handler(void)
 {
-	if(GPIO_GetITStatusBit(GPIO_Pin_12)== SET){//Activity Detected
+
+	 if(GPIO_GetITStatusBit(GPIO_Pin_12)== SET){//Activity Detected
 		debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
 		//scribe_start();
 		//accelerometer_sleep_sensor();
@@ -122,7 +123,7 @@ void GPIO_Handler(void)
 		storage_write_acceleration_page(&buffer,1);
 		accelerometer_spi_read_single(ADXL362_REG_STATUS);
 		GPIO_ClearITPendingBit(GPIO_Pin_5);
-		/* Enable the interrupt */
+
 		//GPIO_EXTICmd(GPIO_Pin_12, ENABLE);
 
 	}

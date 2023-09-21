@@ -83,7 +83,7 @@ void Attribute_Modified_CB(uint16_t handle, uint16_t data_length, uint8_t *att_d
 {
 
 	if (handle == RXCharHandle + 1) {
-		command_processor_process_command(att_data, data_length);
+		command_processor_add_to_buffer(att_data, data_length);
 	} else if (handle == TXCharHandle + 2) {
 
 		if (att_data[0] == 0x01)

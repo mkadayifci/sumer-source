@@ -7,6 +7,10 @@
 
 
 
+void storage_delay(){
+	for (uint32_t i = 0; i < 100000; i++)__NOP();
+}
+
 
 void storage_initialize(){
 
@@ -21,9 +25,11 @@ void storage_initialize(){
  *         This parameter can be: SUCCESS or ERROR.
  */
 ErrorStatus storage_write_acceleration_page(uint8_t *buffer,uint8_t temperature){
-	uint32_t page_address=storage_get_next_page();
+	//storage_format_flash_chip();
+
+	uint32_t volatile page_address=storage_get_next_page();
 	uint8_t bytes_to_send[260];
-	bytes_to_send[0]=FLASH_SPI_COMMAND_WRITE;
+	bytes_to_send[0]=STORAGE_OPCODE_WRITE_DEFAULT;
 	bytes_to_send[1]=page_address>>16& 0xFF;
 	bytes_to_send[2]=page_address>>8 & 0xFF;
 	bytes_to_send[3]=page_address & 0xFF;
@@ -37,8 +43,8 @@ ErrorStatus storage_write_acceleration_page(uint8_t *buffer,uint8_t temperature)
 							(uint8_t *)&bytes_to_send,
 							260);
 	if(ret ==SUCCESS){
-		storage_set_page_metadata(1);
-		storage_increase_next_page_value();
+		storage_set_page_metadata(1,page_address);
+		storage_increase_next_page_value(page_address);
 	}
 	return ret;
 }
@@ -48,7 +54,7 @@ void storage_write_bytes(uint32_t flash_chip_address,uint8_t *buffer,uint8_t len
 	ErrorStatus ret = spi_service_write_data(
 							SPI_DEVICE_ID_FLASH,
 							 (uint8_t[]) {
-									FLASH_SPI_COMMAND_WRITE,
+									STORAGE_OPCODE_WRITE_DEFAULT,
 									flash_chip_address>>16 & 0xFF,
 									flash_chip_address>>8 & 0xFF,
 									flash_chip_address & 0xFF,
@@ -56,6 +62,7 @@ void storage_write_bytes(uint32_t flash_chip_address,uint8_t *buffer,uint8_t len
 							4,
 							buffer,
 							length);
+	storage_delay();
 }
 
 
@@ -94,16 +101,23 @@ static uint32_t storage_get_next_page(){
 
 
 	return next_page_addr;
-
 }
 
 
-static void storage_increase_next_page_value(){
-	uint32_t increased_next_page_addr=storage_get_next_page()+0x100; //Last byte is page position. So wee add 255+1 to increase page addr
+static void storage_increase_next_page_value(uint32_t page_address){
+	uint32_t increased_next_page_addr=page_address+0x100; //Last byte is page position. So wee add 255+1 to increase page addr
 	storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t *)&increased_next_page_addr,4);
 }
 
 
-static void storage_set_page_metadata(uint8_t temperature){
+static void storage_set_page_metadata(uint8_t temperature,uint32_t page_address){
+//Metadata offset -> (page address -3072) * 8
+	uint32_t metadata_offset= (((page_address>>8 ) - (STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG>>8))) * 8 ;
+	uint32_t metadata_address = (STORAGE_FLASH_CHIP_ADDR_METADATA_BASE) + metadata_offset;
+
+
+	storage_write_bytes(metadata_address,  (uint8_t[]) {
+									0xAA,0xBB,0xCC,0xDD,0xEE,0xFF,0x00,temperature
+									},8);
 
 }

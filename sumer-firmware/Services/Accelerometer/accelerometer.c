@@ -2,7 +2,7 @@
 #include "Accelerometer.h"
 
 void delay(){
-	for (uint32_t i = 0; i < 1000000; i++)__NOP();
+	for (uint32_t i = 0; i < 80000; i++)__NOP();
 }
 
 void accelerometer_init() {

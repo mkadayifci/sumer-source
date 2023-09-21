@@ -171,7 +171,13 @@ void flush_ble_serial_buffer(void)
 			APP_FLAG_SET(TX_BUFFER_FULL);
 			return;
 		}
-		cmd_buff_start += len;
+		else if  (ret == BLE_STATUS_SUCCESS) {
+			cmd_buff_start += len;
+		}
+		else{
+			APP_FLAG_SET(TX_BUFFER_FULL);
+		}
+
 	}
 
 
@@ -297,11 +303,11 @@ void Make_Connection(void)
                                  sizeof(local_name), local_name, 0, NULL, 0, 0);
   if(ret != BLE_STATUS_SUCCESS)
   {
-    printf ("Error in aci_gap_set_discoverable(): 0x%02x\r\n", ret);
+    //printf ("Error in aci_gap_set_discoverable(): 0x%02x\r\n", ret);
   }
   else
   {
-    printf ("aci_gap_set_discoverable() --> SUCCESS\r\n");
+    //printf ("aci_gap_set_discoverable() --> SUCCESS\r\n");
   }
 
   /* Update Advertising data with manuf_data */
