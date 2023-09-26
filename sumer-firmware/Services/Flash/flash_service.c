@@ -25,7 +25,7 @@ void storage_initialize(){
  * @retval ErrorStatus: error status @ref ErrorStatus
  *         This parameter can be: SUCCESS or ERROR.
  */
-ErrorStatus storage_write_acceleration_page(uint8_t *buffer,uint8_t temperature){
+ErrorStatus storage_write_acceleration_page(uint8_t* buffer,uint8_t temperature){
 	//storage_format_flash_chip();
 
 	uint32_t volatile page_address=storage_get_next_page();
@@ -53,7 +53,7 @@ ErrorStatus storage_write_acceleration_page(uint8_t *buffer,uint8_t temperature)
 	return ret;
 }
 
-void storage_write_bytes(uint32_t flash_chip_address,uint8_t *buffer,uint8_t length){
+void storage_write_bytes(uint32_t flash_chip_address,uint8_t* buffer,uint8_t length){
 
 	ErrorStatus ret = spi_service_write_data(
 							SPI_DEVICE_ID_FLASH,
@@ -70,7 +70,7 @@ void storage_write_bytes(uint32_t flash_chip_address,uint8_t *buffer,uint8_t len
 }
 
 
-void storage_read_bytes(uint32_t flash_chip_address,uint8_t *buffer,uint8_t length){
+void storage_read_bytes(uint32_t flash_chip_address,uint8_t* buffer,uint8_t length){
 
 	ErrorStatus ret = spi_service_read_data(
 							SPI_DEVICE_ID_FLASH,
@@ -148,7 +148,7 @@ static void storage_set_page_metadata(uint8_t temperature,uint32_t page_address,
 }
 
 
-void storage_get_page_metadata(uint16_t page_index,uint8_t *buffer){
+void storage_get_page_metadata(uint16_t page_index,uint8_t* buffer){
 	uint32_t metadata_address = (STORAGE_FLASH_CHIP_ADDR_METADATA_BASE + (page_index*8));
 
 	storage_read_bytes(metadata_address, buffer,8);

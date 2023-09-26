@@ -40,6 +40,7 @@ extern volatile int app_flags;
 #define TX_BUFFER_FULL          0x20
 #define SEND_DATA               0x40
 #define SCRIBE_MODE             0x80
+#define SCRIBE_COOLDOWN         0x100
 
 /* Added flags for handling TX, RX characteristics discovery */
 #define START_READ_TX_CHAR_HANDLE 0x100

@@ -32,6 +32,7 @@
 #include "SPI_Service.h"
 #include "scribe.h"
 #include "app_state.h"
+#include "flash_service.h"
 
 
 /** @addtogroup BlueNRG1_StdPeriph_Examples
@@ -101,36 +102,41 @@ void SysTick_Handler(void)
 
 void GPIO_Handler(void)
 {
-
-	 if(GPIO_GetITStatusBit(GPIO_Pin_12)== SET){//Activity Detected
-		debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
-		scribe_start();
-		//accelerometer_sleep_sensor();
-
-		accelerometer_spi_read_single(ADXL362_REG_STATUS);
-		GPIO_ClearITPendingBit(GPIO_Pin_12);
-
-
-
+	if (GPIO_GetITStatusBit(GPIO_Pin_12) == SET) { //Activity Detected
+		OnSeismicInterrupt();
 	}
-
-	if(GPIO_GetITStatusBit(GPIO_Pin_5)== SET){//FIFO Watermark
-		debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_ACC_FIFO_WATERMARK);
-
-		accelerometer_spi_read_single(ADXL362_REG_STATUS);
-		uint8_t volatile buffer[255];
-		accelerometer_read_FIFO((uint8_t * )&buffer, sizeof(buffer));
-		storage_write_acceleration_page(&buffer,1);
-		accelerometer_spi_read_single(ADXL362_REG_STATUS);
-		GPIO_ClearITPendingBit(GPIO_Pin_5);
-
-		//GPIO_EXTICmd(GPIO_Pin_12, ENABLE);
-
+	if (GPIO_GetITStatusBit(GPIO_Pin_5) == SET) { //FIFO Watermark
+		OnWatermarkInterrupt();
 	}
-
-
-
 }
+
+
+
+
+void OnSeismicInterrupt(void){
+	GPIO_EXTICmd(GPIO_Pin_12, DISABLE);
+	accelerometer_disable_activity_interrupt();
+	accelerometer_clear_interrupt_bits();
+	GPIO_ClearITPendingBit(GPIO_Pin_12);
+	scribe_start();
+
+	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
+}
+
+
+void OnWatermarkInterrupt(void){
+	GPIO_EXTICmd(GPIO_Pin_5, DISABLE);
+	accelerometer_clear_interrupt_bits();
+	GPIO_ClearITPendingBit(GPIO_Pin_5);
+	scribe_write_seismic_activity_page();
+
+
+
+	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_ACC_FIFO_WATERMARK);
+}
+
+
+
 /******************************************************************************/
 /*                 BlueNRG-1 Peripherals Interrupt Handlers                   */
 /*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */

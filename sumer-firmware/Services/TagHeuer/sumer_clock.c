@@ -1,5 +1,6 @@
 #include "SPI_service.h"
 #include "sumer_clock.h"
+#include "time.h"
 
 
 void sumer_clock_set_time(SumerDateTime time_to_set){
@@ -53,6 +54,19 @@ SumerDateTime sumer_clock_read_time(){
 	return ret;
 }
 
+long sumer_clock_get_epoch(void){
+
+	SumerDateTime current_time = sumer_clock_read_time();
+	struct tm t;
+    t.tm_year =  (current_time.year + 2000)-1900;
+    t.tm_mon = current_time.month-1;           // Month, where 0 = jan
+    t.tm_mday = current_time.day;          // Day of the month
+    t.tm_hour = current_time.hour;
+    t.tm_min = current_time.minute;
+    t.tm_sec = current_time.second;
+    t.tm_isdst = 0;        // Is DST on? 1 = yes, 0 = no, -1 = unknown
+    return mktime(&t);
+}
 
 // function to convert a binary number to BCD format
 static uint8_t sumer_clock_bin2bcd(uint8_t binary_number) {

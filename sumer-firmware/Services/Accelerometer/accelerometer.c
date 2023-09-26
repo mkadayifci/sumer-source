@@ -7,13 +7,9 @@ void delay(){
 
 void accelerometer_init() {
 
-
 	accelerometer_reset();
 	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0);
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x0);
-	accelerometer_sleep_sensor();
-
-
 	InitEXTI();
 }
 
@@ -41,7 +37,16 @@ void InitEXTI(){
 
 }
 
-void accelerometer_sleep_sensor(){
+void accelerometer_disable_activity_interrupt(void){
+	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,0x00);
+}
+
+void accelerometer_clear_interrupt_bits(void){
+	accelerometer_spi_read_single(ADXL362_REG_STATUS);
+}
+
+
+void accelerometer_sleep_and_enable_interrupt(){
 	//Sets ACT(4) bit HIGH to enable activity interrupt
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,0x10);
 	//Activity Threshold Limit in mg
@@ -67,8 +72,21 @@ void accelerometer_set_fifo_to_stream_mode(void){
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x4);
 	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x11);
 	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x22);
+	accelerometer_clear_interrupt_bits();
 	GPIO_ClearITPendingBit(GPIO_Pin_5);
 	GPIO_EXTICmd(GPIO_Pin_5, ENABLE);
+}
+
+
+void accelerometer_clear_fifo_stream_mode(void){
+	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0);
+	accelerometer_spi_write_single(ADXL362_REG_FIFO_SAMPLES,0xFF);
+	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x0);
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x11);
+	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x22);
+	accelerometer_clear_interrupt_bits();
+	GPIO_ClearITPendingBit(GPIO_Pin_5);
+	GPIO_EXTICmd(GPIO_Pin_5, DISABLE);
 }
 
 
@@ -98,7 +116,7 @@ uint8_t accelerometer_spi_read_single(uint8_t command) {
 	return buffer[0];
 }
 
-void accelerometer_read_FIFO(uint8_t * pBuffer,uint8_t length){
+void accelerometer_read_FIFO(uint8_t* pBuffer,uint16_t length){
 	uint8_t command[] = {ADXL362_SPI_COMMAND_FIFO_READ};
 	spi_service_read_data(SPI_DEVICE_ID_ADXL, pBuffer, command,1, length);
 }

@@ -84,10 +84,15 @@ void accelerometer_init();
 
 void delay();
 void accelerometer_reset();
-void accelerometer_sleep_sensor();
+void accelerometer_sleep_and_enable_interrupt();
 void InitEXTI();
 void accelerometer_set_fifo_to_stream_mode(void);
-void accelerometer_read_FIFO(uint8_t * pBuffer,uint8_t length);
+void accelerometer_clear_fifo_stream_mode(void);
+
+void accelerometer_disable_activity_interrupt(void);
+void accelerometer_clear_interrupt_bits(void);
+
+void accelerometer_read_FIFO(uint8_t* pBuffer,uint16_t length);
 ErrorStatus accelerometer_spi_write_single(uint8_t command, uint8_t value);
 uint8_t accelerometer_spi_read_single(uint8_t command) ;
 #endif /* _Accelerometer_ */

@@ -51,6 +51,7 @@ NOTEs:
 #include "command_processor.h"
 #include "OTA_btl.h"
 #include "flash_service.h"
+#include "local_settings.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -66,27 +67,40 @@ NOTEs:
 /* Private functions ---------------------------------------------------------*/
 
 
-int main(void) 
-{
+
+void Radio_Init(){
 	uint8_t ret;
-	SystemInit();
-	Clock_Init();
-
-	//storage_format_flash_chip();
-
 	ret = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
 	if (ret != BLE_STATUS_SUCCESS) {
 		printf("Error in BlueNRG_Stack_Initialization() 0x%02x\r\n", ret);
 		while (1);
 	}
 
-	spi_service_init(SPI_BAUDRATE);
-	sumer_clock_init();
-	//accelerometer_init();
 	ret = BluetoothDeviceInit();
 	if (ret != BLE_STATUS_SUCCESS) {
 		printf("SerialPort_DeviceInit()--> Failed 0x%02x\r\n", ret);
 		while (1);
+	}
+
+}
+
+int main(void) 
+{
+
+	SystemInit();
+	Clock_Init();
+	Radio_Init();
+
+	spi_service_init(SPI_BAUDRATE);
+	sumer_clock_init();
+	accelerometer_init();
+
+	long volatile k =sumer_clock_get_epoch();
+	uint8_t is_seismic_log_enabled=local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED);
+
+
+	if(is_seismic_log_enabled){
+		accelerometer_sleep_and_enable_interrupt();
 	}
 
 	while (1) {
@@ -94,13 +108,10 @@ int main(void)
 		command_processor_parse_buffer();
 		APP_Tick();
 		//BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
+		if(0){//check for is in cooldown mode and timeout reached and seismic_log_disabled
+		accelerometer_sleep_and_enable_interrupt();
+		}
 
-		#if ST_USE_OTA_SERVICE_MANAGER_APPLICATION
-  /*  if (SdkEvalPushButtonGetState(USER_BUTTON) == RESET)
-    {
-      OTA_Jump_To_Service_Manager_Application();
-    }*/
-	#endif /* ST_USE_OTA_SERVICE_MANAGER_APPLICATION */
 	}
 }
 
