@@ -104,7 +104,7 @@ void GPIO_Handler(void)
 
 	 if(GPIO_GetITStatusBit(GPIO_Pin_12)== SET){//Activity Detected
 		debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
-		//scribe_start();
+		scribe_start();
 		//accelerometer_sleep_sensor();
 
 		accelerometer_spi_read_single(ADXL362_REG_STATUS);

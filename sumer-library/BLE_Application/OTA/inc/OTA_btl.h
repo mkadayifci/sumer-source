@@ -162,14 +162,18 @@
     /* BLE Application (with no OTA service) which uses the OTA Service Manager */
     /* BLE application is based at new higher FLASH address */
     
-    #define OTA_FREE_SPACE_RANGE_START      0 //Not used in this context TBR
+   #define OTA_FREE_SPACE_RANGE_START      0 //Not used in this context TBR
     #define OTA_FREE_SPACE_RANGE_END        0 //Not used in this context TBR
 
     #define OTA_OP_CODE OTA_APP_SWITCH_OP_CODE_GO_TO_OTA_SERVICE_MANAGER //Not used in this context TBR
 
-#else 
+
+#else
 /* Nothing to do: no OTA Service is supported; No OTA Service Manager is used */
-#endif 
+#endif
+
+
+
 
 /* ************************************************************************************************ */
 

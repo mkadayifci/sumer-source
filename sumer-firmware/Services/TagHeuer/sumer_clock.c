@@ -69,7 +69,6 @@ static uint8_t sumer_clock_bin2bcd(uint8_t binary_number) {
 }
 
 void sumer_clock_init(){
-	sumer_clock_write_single(RTCHOUR_REGISTER,RTC_1224_BIT); //24 Hours
 	sumer_clock_write_single(RTCSEC_REGISTER,RTC_ST_BIT); // ST Bit
 	sumer_clock_write_single(RTCCONTROL_REGISTER,0x00);
 }

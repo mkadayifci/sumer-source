@@ -4,6 +4,8 @@
  *  Created on: Jul 30, 2023
  *      Author: mkadayifci
  */
+#include "hal_types.h"
+#include "sumer_clock.h"
 
 #ifndef SERVICES_FLASH_FLASH_SERVICE_H_
 #define SERVICES_FLASH_FLASH_SERVICE_H_
@@ -21,17 +23,23 @@
 #define STORAGE_OPCODE_WRITE_BUFFER1_WITH_ERASE			0x82
 #define STORAGE_OPCODE_WRITE_BYTE_BUFFER1				0x58
 
-#define STORAGE_OPCODE_WRITE_DEFAULT					(STORAGE_OPCODE_WRITE_BYTE_BUFFER1)
-
 #define STORAGE_OPCODE_MAIN_MEMORY_READ					0xD2
+
+#define STORAGE_OPCODE_WRITE_DEFAULT					(STORAGE_OPCODE_WRITE_BYTE_BUFFER1)
+#define STORAGE_OPCODE_READ_DEFAULT						(STORAGE_OPCODE_MAIN_MEMORY_READ)
+
+
+#define STORAGE_TOTAL_ACCELARATION_LOG_PAGE_COUNT		29696
+
 
 void storage_initialize();
 ErrorStatus storage_write_acceleration_page(uint8_t *buffer,uint8_t temperature);
-static void storage_format_flash_chip();
+void storage_format_flash_chip();
 static uint32_t storage_get_next_page();
 static void storage_increase_next_page_value(uint32_t page_address);
-static void storage_set_page_metadata(uint8_t temperature,uint32_t page_address);
+static void storage_set_page_metadata(uint8_t temperature,uint32_t page_address,SumerDateTime time);
 void storage_write_bytes(uint32_t  flash_chip_address,uint8_t *buffer,uint8_t length);
-
+void storage_read_bytes(uint32_t flash_chip_address,uint8_t *buffer,uint8_t length);
+void storage_get_page_metadata(uint16_t page_index,uint8_t *buffer);
 
 #endif /* SERVICES_FLASH_FLASH_SERVICE_H_ */

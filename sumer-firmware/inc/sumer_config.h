@@ -29,10 +29,10 @@
 
 #if defined (ST_OTA_LOWER_APPLICATION) || defined (ST_OTA_HIGHER_APPLICATION)
 /* Number of services requests from the serial port demo */
-#define NUM_APP_GATT_SERVICES (1 + 1) /* 1 serial port service + 1 OTA service */
+#define NUM_APP_GATT_SERVICES 	(1 + 1) /* 1 serial port service + 1 OTA service */
 
 /* Number of attributes requests from the serial port demo */
-#define NUM_APP_GATT_ATTRIBUTES (5 + 9) /* 5 attributes x BLE serial port service characteristics + 9 for OTA Service characteristics */
+#define NUM_APP_GATT_ATTRIBUTES 	(5+9) /* 5 attributes x BLE serial port service characteristics + 9 for OTA Service characteristics */
 
 /**
  * Set the number of 16-bytes units used on an OTA FW data packet for matching OTA client MAX ATT_MTU

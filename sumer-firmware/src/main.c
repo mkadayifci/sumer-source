@@ -41,7 +41,7 @@ NOTEs:
 #include "ble_const.h"
 #include "bluenrg1_stack.h"
 #include "sleep.h"
-#include "SDK_EVAL_Config.h"
+
 #include "OTA_btl.h"
 #include "SPI_Service.h"
 #include "serial_port.h"
@@ -49,6 +49,8 @@ NOTEs:
 #include "sumer_clock.h"
 #include "scribe.h"
 #include "command_processor.h"
+#include "OTA_btl.h"
+#include "flash_service.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -70,7 +72,7 @@ int main(void)
 	SystemInit();
 	Clock_Init();
 
-
+	//storage_format_flash_chip();
 
 	ret = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
 	if (ret != BLE_STATUS_SUCCESS) {
@@ -81,24 +83,11 @@ int main(void)
 	spi_service_init(SPI_BAUDRATE);
 	sumer_clock_init();
 	//accelerometer_init();
-	scribe_start();
 	ret = BluetoothDeviceInit();
 	if (ret != BLE_STATUS_SUCCESS) {
 		printf("SerialPort_DeviceInit()--> Failed 0x%02x\r\n", ret);
 		while (1);
 	}
-
-#if ST_USE_OTA_SERVICE_MANAGER_APPLICATION
-  //SdkEvalPushButtonInit(USER_BUTTON);
-#endif /* ST_USE_OTA_SERVICE_MANAGER_APPLICATION */
-
-  	int rBuffer2;
-#if ST_USE_OTA_SERVICE_MANAGER_APPLICATION
-    //if (SdkEvalPushButtonGetState(USER_BUTTON) == RESET)
-    //{
-      OTA_Jump_To_Service_Manager_Application();
-    //}
-#endif /* ST_USE_OTA_SERVICE_MANAGER_APPLICATION */
 
 	while (1) {
 		BTLE_StackTick();
@@ -106,6 +95,12 @@ int main(void)
 		APP_Tick();
 		//BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
 
+		#if ST_USE_OTA_SERVICE_MANAGER_APPLICATION
+  /*  if (SdkEvalPushButtonGetState(USER_BUTTON) == RESET)
+    {
+      OTA_Jump_To_Service_Manager_Application();
+    }*/
+	#endif /* ST_USE_OTA_SERVICE_MANAGER_APPLICATION */
 	}
 }
 

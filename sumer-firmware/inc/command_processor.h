@@ -22,22 +22,26 @@
 
 
 
-#define COMMAND_GET_VERSION		0x41
-#define COMMAND_DEBUG_PRINT		0x42
-#define COMMAND_SET_TIME		0x44
-#define COMMAND_GET_TIME		0x43
+#define COMMAND_GET_VERSION						0x41
+#define COMMAND_DEBUG_PRINT						0x42
+#define COMMAND_SET_TIME						0x44
+#define COMMAND_GET_TIME						0x43
+
 
 
 #define COMMAND_SCRIBE_GET_WRITTEN_PAGE_COUNT	0x45
 #define COMMAND_SCRIBE_GET_WHOLE_PAGE			0x46
-#define COMMAND_GET_PAGE_LIST	0x47
+#define COMMAND_GET_PAGE_LIST					0x47
+#define COMMAND_SWITCH_TO_FIRMWARE_UPGRADE		0x48
 
 
 #define FIRMWARE_VERSION_MAJOR	 	0x01
 #define FIRMWARE_VERSION_MINOR		0x04
 
+
 void command_processor_send_version_response(void);
 void command_processor_get_pagelist_response(void);
+void command_processor_switch_to_firmware_upgrade_mode(void);
 void command_processor_send_total_written_page_count(void);
 void command_processor_set_time(uint8_t year,uint8_t month,uint8_t day,uint8_t hour,uint8_t minute,uint8_t second);
 void command_processor_get_time_response();

@@ -133,19 +133,11 @@ uint8_t BluetoothDeviceInit(void)
 
   ret = Add_SerialPort_Service();
 	if (ret != BLE_STATUS_SUCCESS) {
-		printf("Error in Add_SerialPort_Service 0x%02x\r\n", ret);
+		//printf("Error in Add_SerialPort_Service 0x%02x\r\n", ret);
 		return ret;
 	} else {
 		//printf("Add_SerialPort_Service() --> SUCCESS\r\n");
 	}
-
-#if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
-  ret = OTA_Add_Btl_Service();
-  if(ret == BLE_STATUS_SUCCESS)
-    printf("OTA service added successfully.\n");
-  else
-    printf("Error while adding OTA service.\n");
-#endif /* ST_OTA_FIRMWARE_UPGRADE_SUPPORT */
 
 
 
@@ -205,46 +197,7 @@ void send_data_over_ble_serial(uint8_t* data,uint8_t length ){
 }
 
 
-/*******************************************************************************
-* Function Name  : Process_InputData.
-* Description    : Process a command. It should be called when data are received.
-* Input          : data_buffer: data address.
-*	           Nb_bytes: number of received bytes.
-* Return         : none.
-*******************************************************************************/
-void Process_InputData(uint8_t* data_buffer, uint16_t Nb_bytes)
-{
-	return;
-	/*
-	uint8_t i;
 
-	for (i = 0; i < Nb_bytes; i++) {
-		if (cmd_buff_end >= CMD_BUFF_SIZE - 1) {
-			cmd_buff_end = 0;
-		}
-
-		cmd[cmd_buff_end] = data_buffer[i];
-		//SdkEvalComIOSendData(data_buffer[i]);
-		cmd_buff_end++;
-
-		if ((cmd[cmd_buff_end - 1] == '\n')
-				|| (cmd[cmd_buff_end - 1] == '\r')) {
-			if (cmd_buff_end != 1) {
-
-				cmd[cmd_buff_end] = '\0'; // Only a termination character. Not strictly needed.
-
-				// Set flag to send data. Disable UART IRQ to avoid overwriting buffer with new incoming data
-				APP_FLAG_SET(SEND_DATA);
-				NVIC_DisableIRQ(UART_IRQn);
-
-				cmd_buff_start = 0;
-
-			} else {
-				cmd_buff_end = 0; // Discard
-			}
-		}
-	}*/
-}
 
 
 /*******************************************************************************

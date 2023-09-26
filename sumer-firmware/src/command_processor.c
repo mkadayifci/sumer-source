@@ -9,6 +9,7 @@
 #include "sumer_clock.h"
 #include "bluenrg1_stack.h"
 #include "app_state.h"
+#include "flash_service.h"
 
 
 uint8_t command_buffer[COMMAND_BUFFER_SIZE];
@@ -24,6 +25,12 @@ void command_processor_add_to_buffer(uint8_t *receiveBuffer, uint8_t length) {
 		}
 	}
 }
+
+
+void command_processor_switch_to_firmware_upgrade_mode(void){
+
+}
+
 
 void command_processor_parse_buffer(){
 	if(buffer_position<5){//Minimum buffer position to a valid message; 3 Start byte, 1 length, 1 command
@@ -104,15 +111,19 @@ void command_processor_send_version_response(void) {
 void command_processor_get_pagelist_response(void) {
 	uint8_t counter=0;
 
-	for (int i = 0; i < 10000; i++) {
-		//delay();
+	for (int i = 0; i < 100; i++) {
+
+
+		uint8_t* buffer;
+		storage_get_page_metadata(i,buffer);
+
 
 		uint8_t response[] = {
 		COMMAND_START_SEQ_1,
 		COMMAND_START_SEQ_2,
 		COMMAND_START_SEQ_3, 9,
-		COMMAND_GET_PAGE_LIST, counter++, counter++, counter++, counter++,
-				counter++, counter++, counter++, counter++ };
+		COMMAND_GET_PAGE_LIST, buffer[0], buffer[1], buffer[2], buffer[3],
+		buffer[4], buffer[5],buffer[6], buffer[7] };
 
 		send_data_over_ble_serial((uint8_t*) &response, sizeof(response));
 

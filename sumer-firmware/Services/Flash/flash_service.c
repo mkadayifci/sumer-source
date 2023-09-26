@@ -2,6 +2,7 @@
 #include "hal_types.h"
 #include "SPI_Service.h"
 #include "flash_service.h"
+#include "sumer_clock.h"
 #define PORT
 
 
@@ -43,7 +44,10 @@ ErrorStatus storage_write_acceleration_page(uint8_t *buffer,uint8_t temperature)
 							(uint8_t *)&bytes_to_send,
 							260);
 	if(ret ==SUCCESS){
-		storage_set_page_metadata(1,page_address);
+		SumerDateTime time;
+		time=sumer_clock_read_time();
+
+		storage_set_page_metadata(1,page_address,time);
 		storage_increase_next_page_value(page_address);
 	}
 	return ret;
@@ -66,8 +70,26 @@ void storage_write_bytes(uint32_t flash_chip_address,uint8_t *buffer,uint8_t len
 }
 
 
+void storage_read_bytes(uint32_t flash_chip_address,uint8_t *buffer,uint8_t length){
 
-static void storage_format_flash_chip(){
+	ErrorStatus ret = spi_service_read_data(
+							SPI_DEVICE_ID_FLASH,
+							buffer,
+
+							 (uint8_t[]) {
+									STORAGE_OPCODE_READ_DEFAULT,
+									flash_chip_address>>16 & 0xFF,
+									flash_chip_address>>8 & 0xFF,
+									flash_chip_address & 0xFF,
+									},
+							4,
+							length);
+	storage_delay();
+}
+
+
+
+void storage_format_flash_chip(){
 	//bütün chip'i sil.
 
 	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
@@ -110,14 +132,27 @@ static void storage_increase_next_page_value(uint32_t page_address){
 }
 
 
-static void storage_set_page_metadata(uint8_t temperature,uint32_t page_address){
+
+
+
+static void storage_set_page_metadata(uint8_t temperature,uint32_t page_address,SumerDateTime time){
 //Metadata offset -> (page address -3072) * 8
 	uint32_t metadata_offset= (((page_address>>8 ) - (STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG>>8))) * 8 ;
 	uint32_t metadata_address = (STORAGE_FLASH_CHIP_ADDR_METADATA_BASE) + metadata_offset;
 
 
 	storage_write_bytes(metadata_address,  (uint8_t[]) {
-									0xAA,0xBB,0xCC,0xDD,0xEE,0xFF,0x00,temperature
+		time.year,time.month,time.day,time.hour,time.minute,time.second,0x00,temperature
 									},8);
 
 }
+
+
+void storage_get_page_metadata(uint16_t page_index,uint8_t *buffer){
+	uint32_t metadata_address = (STORAGE_FLASH_CHIP_ADDR_METADATA_BASE + (page_index*8));
+
+	storage_read_bytes(metadata_address, buffer,8);
+}
+
+
+
