@@ -9,6 +9,9 @@
 uint8_t local_settings_get_char_value(uint16_t flash_chip_address){
 	uint8_t* buffer[1];
 	storage_read_bytes(flash_chip_address, buffer, 1);
+
+
+
 	return buffer[0];
 }
 

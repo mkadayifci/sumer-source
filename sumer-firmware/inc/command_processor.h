@@ -5,6 +5,7 @@
  *      Author: mkadayifci
  */
 #include "stdint.h"
+#include "hal_types.h"
 
 #ifndef INC_COMMAND_PROCESSOR_H_
 #define INC_COMMAND_PROCESSOR_H_
@@ -20,6 +21,13 @@
 #define COMMAND_START_SEQ_2		0x00
 #define COMMAND_START_SEQ_3		0xB2
 
+typedef struct {
+	uint32_t log_epoch;
+	uint32_t page_base_address;
+	uint16_t page_count;
+	uint8_t log_index;
+	uint8_t total_log_count;
+} log_metadata_t;
 
 
 #define COMMAND_GET_VERSION						0x41
@@ -33,13 +41,18 @@
 #define COMMAND_SCRIBE_GET_WHOLE_PAGE			0x46
 #define COMMAND_GET_PAGE_LIST					0x47
 #define COMMAND_SWITCH_TO_FIRMWARE_UPGRADE		0x48
-
+#define COMMAND_SWITCH_TO_SEISMIC_DEMO_MODE		0x49
+#define COMMAND_SET_SEISMIC_LOG_MODE			0x50
+#define COMMAND_GET_SEISMIC_LOG_MODE			0x51
 
 #define FIRMWARE_VERSION_MAJOR	 	0x01
 #define FIRMWARE_VERSION_MINOR		0x04
 
 
+void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_metadata_array);
+void command_processor_sesimic_log_mode_response(void);
 void command_processor_send_version_response(void);
+void command_processor_send_seismic_demo_response(void);
 void command_processor_get_pagelist_response(void);
 void command_processor_switch_to_firmware_upgrade_mode(void);
 void command_processor_send_total_written_page_count(void);

@@ -82,10 +82,10 @@ typedef struct
 void accelerometer_init();
 
 
-void delay();
+void accelerometer_delay();
 void accelerometer_reset();
 void accelerometer_sleep_and_enable_interrupt();
-void InitEXTI();
+void accelerometer_init_external_interrupts();
 void accelerometer_set_fifo_to_stream_mode(void);
 void accelerometer_clear_fifo_stream_mode(void);
 

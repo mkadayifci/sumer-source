@@ -3,20 +3,19 @@
 #include "SPI_Service.h"
 #include "flash_service.h"
 #include "sumer_clock.h"
+#include "time.h"
+#include "accelerometer.h"
 #define PORT
 
 
-
-
 void storage_delay(){
-	for (uint32_t i = 0; i < 100000; i++)__NOP();
+	for (uint32_t i = 0; i < 200000; i++)__NOP();
 }
 
 
 void storage_initialize(){
 
 }
-
 
 /**
  * @brief  Writes 256 bytes to next available flash page
@@ -28,7 +27,7 @@ void storage_initialize(){
 ErrorStatus storage_write_acceleration_page(uint8_t* buffer,uint8_t temperature){
 	//storage_format_flash_chip();
 
-	uint32_t volatile page_address=storage_get_next_page();
+	uint32_t page_address=storage_get_next_page();
 	uint8_t bytes_to_send[260];
 	bytes_to_send[0]=STORAGE_OPCODE_WRITE_DEFAULT;
 	bytes_to_send[1]=page_address>>16& 0xFF;
@@ -43,11 +42,16 @@ ErrorStatus storage_write_acceleration_page(uint8_t* buffer,uint8_t temperature)
 							SPI_DEVICE_ID_FLASH,
 							(uint8_t *)&bytes_to_send,
 							260);
-	if(ret ==SUCCESS){
-		SumerDateTime time;
-		time=sumer_clock_read_time();
 
-		storage_set_page_metadata(1,page_address,time);
+	while(!storage_is_device_ready()){
+			storage_delay();
+	}
+
+	if(ret ==SUCCESS){
+		uint32_t time_epoch=sumer_clock_get_epoch();
+		uint8_t temp_H=accelerometer_spi_read_single(ADXL362_REG_TEMP_H);
+		uint8_t temp_L=accelerometer_spi_read_single(ADXL362_REG_TEMP_L);
+		storage_set_page_metadata(page_address,time_epoch,temp_H,temp_L);
 		storage_increase_next_page_value(page_address);
 	}
 	return ret;
@@ -66,10 +70,31 @@ void storage_write_bytes(uint32_t flash_chip_address,uint8_t* buffer,uint8_t len
 							4,
 							buffer,
 							length);
-	storage_delay();
+
+	while(!storage_is_device_ready()){
+			storage_delay();
+	}
 }
 
+uint8_t storage_is_device_ready(){
 
+	uint8_t read_buffer[2];
+
+	ErrorStatus ret = spi_service_read_data(
+							SPI_DEVICE_ID_FLASH,
+							&read_buffer,
+							 (uint8_t[]) {
+										STORAGE_OPCODE_STATUS
+									},
+							1,
+							2);
+
+
+
+
+	return read_buffer[0]&0x80;
+
+}
 void storage_read_bytes(uint32_t flash_chip_address,uint8_t* buffer,uint8_t length){
 
 	ErrorStatus ret = spi_service_read_data(
@@ -81,10 +106,12 @@ void storage_read_bytes(uint32_t flash_chip_address,uint8_t* buffer,uint8_t leng
 									flash_chip_address>>16 & 0xFF,
 									flash_chip_address>>8 & 0xFF,
 									flash_chip_address & 0xFF,
+									0x00,0x00,0x00,0x00
 									},
-							4,
+							8,
 							length);
-	storage_delay();
+
+
 }
 
 
@@ -99,60 +126,80 @@ void storage_format_flash_chip(){
 		0x9A,
 	}, 4);
 
-	//sector 0b ilk 4 byte'a başlangıç sayfasını yaz.
+}
 
+
+void storage_use_256_byte_page(){
+	//bütün chip'i sil.
+
+	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
+		0x3D,
+		0x2A,
+		0x80,
+		0xA6,
+	}, 4);
 
 }
+
+/*typedef struct {
+	uint32_t	log_start_epoch;
+	uint32_t	log_page_base_address;
+	uint16_t	page_count;
+
+} seismic_log_metadata;*/
+
 
 static uint32_t storage_get_next_page(){
 
 	uint32_t next_page_addr=0x00;
 	uint32_t next_page_address_flash_addr= STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE;
 
-	spi_service_read_data(SPI_DEVICE_ID_FLASH, (uint8_t *)&next_page_addr, (uint8_t[]) {
-		STORAGE_OPCODE_MAIN_MEMORY_READ,
-		STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE>>16 & 0xFF,
-		STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE>>8 & 0xFF,
-		STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE & 0xFF,
-		SPI_DUMMY,SPI_DUMMY,SPI_DUMMY,SPI_DUMMY},8, 4);
+	storage_read_bytes(next_page_address_flash_addr,(uint8_t *)&next_page_addr,4);
 
 	if(next_page_addr==0x00 || next_page_addr==0xFFFFFFFF){
 		next_page_addr=STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG;
 		storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t *)&next_page_addr,4);
 	}
 
-
 	return next_page_addr;
 }
 
-
 static void storage_increase_next_page_value(uint32_t page_address){
-	uint32_t increased_next_page_addr=page_address+0x100; //Last byte is page position. So wee add 255+1 to increase page addr
+
+	uint32_t increased_next_page_addr=page_address+0x100; //Last byte is in page position. So wee add 255+1 to increase page addr
+
+	if(increased_next_page_addr>STORAGE_ADDR_END_PAGE_OF_ACCELERATION_LOG){
+		increased_next_page_addr=STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG;
+	}
+
 	storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t *)&increased_next_page_addr,4);
 }
 
-
-
-
-
-static void storage_set_page_metadata(uint8_t temperature,uint32_t page_address,SumerDateTime time){
+static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,uint8_t temp_H,uint8_t temp_L){
 //Metadata offset -> (page address -3072) * 8
 	uint32_t metadata_offset= (((page_address>>8 ) - (STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG>>8))) * 8 ;
 	uint32_t metadata_address = (STORAGE_FLASH_CHIP_ADDR_METADATA_BASE) + metadata_offset;
+	uint8_t* p_time_epoch= &time_epoch;
+
+	storage_write_bytes(
+		metadata_address,
+		(uint8_t[])  {
+			time_epoch & 0xFF,
+			time_epoch>>8 & 0xFF,
+			time_epoch>>16 & 0xFF,
+			time_epoch>>24 & 0xFF,
+			0x00,
+			0x00,
+			temp_H,
+			temp_L
+		},
+		8);
 
 
-	storage_write_bytes(metadata_address,  (uint8_t[]) {
-		time.year,time.month,time.day,time.hour,time.minute,time.second,0x00,temperature
-									},8);
 
 }
-
 
 void storage_get_page_metadata(uint16_t page_index,uint8_t* buffer){
 	uint32_t metadata_address = (STORAGE_FLASH_CHIP_ADDR_METADATA_BASE + (page_index*8));
-
 	storage_read_bytes(metadata_address, buffer,8);
 }
-
-
-

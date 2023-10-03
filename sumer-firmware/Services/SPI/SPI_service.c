@@ -287,7 +287,7 @@ void ChangeSelectPin(uint8_t deviceId, uint8_t newState) {
  * @retval ErrorStatus: error status @ref ErrorStatus
  *         This parameter can be: SUCCESS or ERROR.
  */
-ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[],uint8_t command_length, uint8_t bytes_to_read) {
+ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[],uint8_t command_length, uint16_t bytes_to_read) {
 
 
 	while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
@@ -302,7 +302,7 @@ ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t com
 		SPI_ReceiveData();
 	}
 
-	for (uint8_t i = 0; i < bytes_to_read; i++) {
+	for (uint16_t i = 0; i < bytes_to_read; i++) {
 		while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
 		SPI_SendData(0x00);
 		while (RESET == SPI_GetFlagStatus(SPI_FLAG_RNE));
@@ -336,8 +336,8 @@ ErrorStatus spi_service_write(uint8_t deviceId,uint8_t command[], uint16_t comma
 
 	for (uint16_t i = 0; i < command_length; i++) {
 		SPI_SendData(command[i]);
+		while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
 	}
-	while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
 
 
 	ChangeSelectPin(deviceId, SET);
@@ -361,15 +361,17 @@ ErrorStatus spi_service_write_data(uint8_t deviceId,uint8_t command[],uint16_t c
 
 	for (uint16_t i = 0; i < command_length; i++) {
 		SPI_SendData(command[i]);
+		while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
 	}
 
 
-	for (uint8_t i = 0; i < bytes_to_write; i++) {
+	for (uint16_t i = 0; i < bytes_to_write; i++) {
 		SPI_SendData(pBuffer[i]);
+		while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
 	}
 
 
-	while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
+
 
 
 	ChangeSelectPin(deviceId, SET);

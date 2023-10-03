@@ -1,7 +1,7 @@
 #include "SPI_Service.h"
 #include "Accelerometer.h"
 
-void delay(){
+void accelerometer_delay(){
 	for (uint32_t i = 0; i < 80000; i++)__NOP();
 }
 
@@ -10,10 +10,10 @@ void accelerometer_init() {
 	accelerometer_reset();
 	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0);
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x0);
-	InitEXTI();
+	accelerometer_init_external_interrupts();
 }
 
-void InitEXTI(){
+void accelerometer_init_external_interrupts(){
 	GPIO_InitType GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5|GPIO_Pin_12;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Input;
@@ -123,5 +123,5 @@ void accelerometer_read_FIFO(uint8_t* pBuffer,uint16_t length){
 
 void accelerometer_reset() {
 	accelerometer_spi_write_single(ADXL362_REG_SOFT_RESET,ADXL362_SOFT_RESET_VAL);
-	delay();
+	accelerometer_delay();
 }

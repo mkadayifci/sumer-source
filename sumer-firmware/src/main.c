@@ -52,6 +52,8 @@ NOTEs:
 #include "OTA_btl.h"
 #include "flash_service.h"
 #include "local_settings.h"
+#include "app_state.h"
+
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -84,9 +86,35 @@ void Radio_Init(){
 
 }
 
-int main(void) 
+/*******************************************************************************
+* Function Name  : APP_Tick.
+* Description    : Tick to run the application state machine.
+* Input          : none.
+* Return         : none.
+*******************************************************************************/
+void APP_Tick(void)
 {
 
+	if (APP_FLAG(SET_CONNECTABLE)) {
+		Make_Connection();
+		APP_FLAG_CLEAR(SET_CONNECTABLE);
+	}
+
+	flush_ble_serial_buffer();
+	command_processor_parse_buffer();
+	scribe_cooldown_period_tick();
+#if REQUEST_CONN_PARAM_UPDATE
+  if(APP_FLAG(CONNECTED) && !APP_FLAG(L2CAP_PARAM_UPD_SENT) && Timer_Expired(&l2cap_req_timer))
+  {
+    aci_l2cap_connection_parameter_update_req(connection_handle, 8, 16, 0, 600);
+    APP_FLAG_SET(L2CAP_PARAM_UPD_SENT);
+  }
+#endif
+
+
+}/* end APP_Tick() */
+
+void InitializeAllSystems(void){
 	SystemInit();
 	Clock_Init();
 	Radio_Init();
@@ -94,24 +122,31 @@ int main(void)
 	spi_service_init(SPI_BAUDRATE);
 	sumer_clock_init();
 	accelerometer_init();
+}
 
-	long volatile k =sumer_clock_get_epoch();
+int main(void)
+{
+
+
+	InitializeAllSystems();
+	//storage_format_flash_chip();
+	//storage_use_256_byte_page();
+
+
+	while(!storage_is_device_ready()){
+			storage_delay();
+	}
+
 	uint8_t is_seismic_log_enabled=local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED);
 
-
-	if(is_seismic_log_enabled){
-		accelerometer_sleep_and_enable_interrupt();
+	if(is_seismic_log_enabled==1){
+		//accelerometer_sleep_and_enable_interrupt();
 	}
 
 	while (1) {
 		BTLE_StackTick();
-		command_processor_parse_buffer();
 		APP_Tick();
 		//BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
-		if(0){//check for is in cooldown mode and timeout reached and seismic_log_disabled
-		accelerometer_sleep_and_enable_interrupt();
-		}
-
 	}
 }
 

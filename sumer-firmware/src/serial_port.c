@@ -27,6 +27,7 @@
 #include "serial_port.h"
 #include "SDK_EVAL_Config.h"
 #include "OTA_btl.h"
+#include "command_processor.h"
 
 /* External variables --------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
@@ -270,32 +271,6 @@ void Make_Connection(void)
 }
 
 
-/*******************************************************************************
-* Function Name  : APP_Tick.
-* Description    : Tick to run the application state machine.
-* Input          : none.
-* Return         : none.
-*******************************************************************************/
-void APP_Tick(void)
-{
-
-	if (APP_FLAG(SET_CONNECTABLE)) {
-		Make_Connection();
-		APP_FLAG_CLEAR(SET_CONNECTABLE);
-	}
-
-	flush_ble_serial_buffer();
-
-#if REQUEST_CONN_PARAM_UPDATE
-  if(APP_FLAG(CONNECTED) && !APP_FLAG(L2CAP_PARAM_UPD_SENT) && Timer_Expired(&l2cap_req_timer))
-  {
-    aci_l2cap_connection_parameter_update_req(connection_handle, 8, 16, 0, 600);
-    APP_FLAG_SET(L2CAP_PARAM_UPD_SENT);
-  }
-#endif
-
-
-}/* end APP_Tick() */
 
 
 /* ***************** BlueNRG-1 Stack Callbacks ********************************/

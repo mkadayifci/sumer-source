@@ -103,7 +103,9 @@ void SysTick_Handler(void)
 void GPIO_Handler(void)
 {
 	if (GPIO_GetITStatusBit(GPIO_Pin_12) == SET) { //Activity Detected
-		OnSeismicInterrupt();
+		if(!scribe_is_in_cooldown_period() && !scribe_is_in_scribe_mode()){
+			OnSeismicInterrupt();
+		}
 	}
 	if (GPIO_GetITStatusBit(GPIO_Pin_5) == SET) { //FIFO Watermark
 		OnWatermarkInterrupt();
@@ -132,7 +134,7 @@ void OnWatermarkInterrupt(void){
 
 
 
-	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_ACC_FIFO_WATERMARK);
+	//debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_ACC_FIFO_WATERMARK);
 }
 
 

@@ -61,7 +61,7 @@
 /**
   * @brief SPI Baudrate
   */
-#define SPI_BAUDRATE                    (2000000)
+#define SPI_BAUDRATE                    (1000000)
 
 /**
  * @brief  SPI DR address
@@ -133,7 +133,7 @@
 
 
 ErrorStatus spi_service_init(uint32_t baudrate);
-ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[],uint8_t command_length,  uint8_t bytes_to_read);
+ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[],uint8_t command_length,  uint16_t bytes_to_read);
 ErrorStatus spi_service_write(uint8_t deviceId,uint8_t command[], uint16_t command_length);
 ErrorStatus spi_service_write_data(uint8_t deviceId,uint8_t command[],uint16_t command_length,uint8_t *pBuffer, uint16_t bytes_to_write);
 
