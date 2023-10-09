@@ -10,7 +10,7 @@
 #define SERVICES_INCLUDE_SCRIBE_H_
 
 
-#define SCRIBE_LOG_PERIOD_IN_SEC		10 	// 	60
+#define SCRIBE_LOG_PERIOD_IN_SEC		30 	// 	60
 #define SCRIBE_COOLDOWN_PERIOD_IN_SEC	30 // 	300
 
 void scribe_start(void);

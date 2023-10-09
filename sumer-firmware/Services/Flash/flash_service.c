@@ -95,7 +95,7 @@ uint8_t storage_is_device_ready(){
 	return read_buffer[0]&0x80;
 
 }
-void storage_read_bytes(uint32_t flash_chip_address,uint8_t* buffer,uint8_t length){
+void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,uint16_t length){
 
 	ErrorStatus ret = spi_service_read_data(
 							SPI_DEVICE_ID_FLASH,
@@ -164,15 +164,21 @@ static uint32_t storage_get_next_page(){
 	return next_page_addr;
 }
 
+
+
 static void storage_increase_next_page_value(uint32_t page_address){
 
+	uint32_t increased_next_page_addr=storage_get_next_page_address(page_address);
+	storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t *)&increased_next_page_addr,4);
+}
+
+uint32_t storage_get_next_page_address(uint32_t page_address){
 	uint32_t increased_next_page_addr=page_address+0x100; //Last byte is in page position. So wee add 255+1 to increase page addr
 
 	if(increased_next_page_addr>STORAGE_ADDR_END_PAGE_OF_ACCELERATION_LOG){
 		increased_next_page_addr=STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG;
 	}
-
-	storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t *)&increased_next_page_addr,4);
+	return increased_next_page_addr;
 }
 
 static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,uint8_t temp_H,uint8_t temp_L){
@@ -202,4 +208,11 @@ static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,
 void storage_get_page_metadata(uint16_t page_index,uint8_t* buffer){
 	uint32_t metadata_address = (STORAGE_FLASH_CHIP_ADDR_METADATA_BASE + (page_index*8));
 	storage_read_bytes(metadata_address, buffer,8);
+
 }
+
+void storage_get_page_metadata_by_page_address(uint32_t page_address,uint8_t* buffer){
+	uint16_t page_index = ((page_address >>8) - (STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG>>8) );
+	storage_get_page_metadata(page_index, buffer);
+}
+
