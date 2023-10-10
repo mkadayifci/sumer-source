@@ -196,8 +196,16 @@ void send_data_over_ble_serial(uint8_t* data,uint8_t length ){
 
 	APP_FLAG_SET(SEND_DATA);
 }
+void send_data_over_ble_serial_and_force(uint8_t* data,uint8_t length ){
 
+	send_data_over_ble_serial(data,length);
+	flush_ble_serial_buffer();
+	while (APP_FLAG(TX_BUFFER_FULL))
+	{
+		BTLE_StackTick();
+	}
 
+}
 
 
 

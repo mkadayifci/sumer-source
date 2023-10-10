@@ -6,6 +6,7 @@
  */
 #include "hal_types.h"
 #include "sumer_clock.h"
+#include "stddef.h"
 
 #ifndef SERVICES_FLASH_FLASH_SERVICE_H_
 #define SERVICES_FLASH_FLASH_SERVICE_H_
@@ -49,7 +50,7 @@ typedef struct {
 
 //TODO: length değişkenlerini size_t ile değiştir
 void storage_initialize();
-ErrorStatus storage_write_acceleration_page(uint8_t* buffer);
+ErrorStatus storage_write_acceleration_page(uint8_t * buffer);
 uint8_t storage_is_device_ready();
 void storage_format_flash_chip();
 uint32_t storage_get_next_page_address(uint32_t page_address);
@@ -57,9 +58,9 @@ void storage_use_256_byte_page();
 static uint32_t  storage_get_next_page();
 static void storage_increase_next_page_value(uint32_t page_address);
 static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,uint8_t temp_H,uint8_t temp_L);
-void storage_write_bytes(uint32_t  flash_chip_address,uint8_t* buffer,uint8_t length);
-void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,uint16_t length);
-void storage_get_page_metadata(uint16_t page_index,uint8_t* buffer);
-void storage_get_page_metadata_by_page_address(uint32_t page_address,uint8_t* buffer);
+void storage_write_bytes(uint32_t  flash_chip_address,uint8_t * buffer,size_t length);
+void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,size_t length);
+void storage_get_page_metadata(uint16_t page_index,uint8_t * buffer);
+void storage_get_page_metadata_by_page_address(uint32_t page_address,uint8_t * buffer);
 
 #endif /* SERVICES_FLASH_FLASH_SERVICE_H_ */
