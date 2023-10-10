@@ -125,14 +125,14 @@ typedef struct {
 	uint16_t chunk_count;
 	uint32_t page_crc;
 	uint16_t page_order_in_session;
-	uint16_t temp;
+	int16_t temp;
 	uint32_t page_epoch;
 
 } page_transfer_metadata_t;
 
 
 
-#define LOG_PAGE_TRANSFER_CHUNK_SIZE 0x10
+#define LOG_PAGE_TRANSFER_CHUNK_SIZE 0x08
 static uint8_t seismic_log_detail_session_counter=0;
 void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer) {
 
@@ -167,7 +167,7 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer) {
 	uint8_t page_content_buffer[256];
 	uint8_t metadata_buffer[8];
 	uint32_t active_page_epoch=0;
-	uint16_t active_page_temprature=0;
+	int16_t active_page_temprature=0;
 	uint32_t previous_page_epoch=0;
 	uint16_t page_order=0;
 	uint32_t active_page_address=seismic_log_base_address;
@@ -181,8 +181,8 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer) {
 						(uint32_t)metadata_buffer[2] << 16 |
 						(uint32_t)metadata_buffer[3] << 24;
 
-		active_page_temprature = (uint16_t)metadata_buffer[6] |
-								(uint16_t)metadata_buffer[7] << 8 ;
+		active_page_temprature = (int16_t)metadata_buffer[7] |
+								(int16_t)metadata_buffer[6] << 8 ;
 
 
 		int32_t difference= active_page_epoch - previous_page_epoch;
@@ -191,7 +191,7 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer) {
 			break;
 		}
 		storage_read_bytes(active_page_address, (uint8_t * )&page_content_buffer, 256);
-		uint32_t crc32_value = crc_service_calculate_crc((uint8_t * )&page_content_buffer,256);
+		uint32_t crc32_value = crc_service_calculate_crc32c((uint8_t * )&page_content_buffer,256);
 
 		current_page_transfer_metadata.chunk_count=256/LOG_PAGE_TRANSFER_CHUNK_SIZE;
 		current_page_transfer_metadata.page_crc = crc32_value;
@@ -239,24 +239,20 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer) {
 					COMMAND_START_SEQ_1,
 					COMMAND_START_SEQ_2,
 					COMMAND_START_SEQ_3,
-					16,
+					13,
 					COMMAND_PAGE_CHUNK,
 					i+1, //Chunk Number
 					current_page_transfer_metadata.session_id,
 					current_page_transfer_metadata.page_order_in_session & 0xFF,
 					current_page_transfer_metadata.page_order_in_session >> 8 & 0xFF,
-					page_content_buffer[0 + (i * 16)],
-					page_content_buffer[1 + (i * 16)],
-					page_content_buffer[2 + (i * 16)],
-					page_content_buffer[3 + (i * 16)],
-					page_content_buffer[4 + (i * 16)],
-					page_content_buffer[5 + (i * 16)],
-					page_content_buffer[6 + (i * 16)],
-					page_content_buffer[7 + (i * 16)],
-					page_content_buffer[8 + (i * 16)],
-					page_content_buffer[9 + (i * 16)],
-					page_content_buffer[10 + (i * 16)],
-
+					page_content_buffer[0 + (i * LOG_PAGE_TRANSFER_CHUNK_SIZE)],
+					page_content_buffer[1 + (i * LOG_PAGE_TRANSFER_CHUNK_SIZE)],
+					page_content_buffer[2 + (i * LOG_PAGE_TRANSFER_CHUNK_SIZE)],
+					page_content_buffer[3 + (i * LOG_PAGE_TRANSFER_CHUNK_SIZE)],
+					page_content_buffer[4 + (i * LOG_PAGE_TRANSFER_CHUNK_SIZE)],
+					page_content_buffer[5 + (i * LOG_PAGE_TRANSFER_CHUNK_SIZE)],
+					page_content_buffer[6 + (i * LOG_PAGE_TRANSFER_CHUNK_SIZE)],
+					page_content_buffer[7 + (i * LOG_PAGE_TRANSFER_CHUNK_SIZE)],
 
 					};
 

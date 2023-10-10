@@ -24,7 +24,7 @@ void storage_initialize(){
  * @retval ErrorStatus: error status @ref ErrorStatus
  *         This parameter can be: SUCCESS or ERROR.
  */
-ErrorStatus storage_write_acceleration_page(uint8_t* buffer,uint8_t temperature){
+ErrorStatus storage_write_acceleration_page(uint8_t* buffer){
 	//storage_format_flash_chip();
 
 	uint32_t page_address=storage_get_next_page();
@@ -34,7 +34,7 @@ ErrorStatus storage_write_acceleration_page(uint8_t* buffer,uint8_t temperature)
 	bytes_to_send[2]=page_address>>8 & 0xFF;
 	bytes_to_send[3]=page_address & 0xFF;
 
-	for(int i =0;i<255;i++){
+	for(int i =0;i<256;i++){
 		bytes_to_send[i+4]=buffer[i];
 	}
 

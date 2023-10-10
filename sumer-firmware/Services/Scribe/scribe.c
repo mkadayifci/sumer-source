@@ -57,13 +57,9 @@ void scribe_cooldown_period_tick(void){
 }
 void scribe_write_seismic_activity_page(void) {
 
-	uint8_t* pBuffer[256];
-	accelerometer_read_FIFO(pBuffer, sizeof(pBuffer));
-
-	//TODO: Get temp and pass it
-	storage_write_acceleration_page(pBuffer, 22);
-
-
+	uint8_t pBuffer[256];
+	accelerometer_read_FIFO(&pBuffer, sizeof(pBuffer));
+	storage_write_acceleration_page(&pBuffer);
 
 	if (( sumer_clock_get_epoch()-scribe_start_time ) > SCRIBE_LOG_PERIOD_IN_SEC) {
 		scribe_stop();

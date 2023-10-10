@@ -67,10 +67,10 @@ void accelerometer_sleep_and_enable_interrupt(){
 
 
 void accelerometer_set_fifo_to_stream_mode(void){
-	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x2);
-	accelerometer_spi_write_single(ADXL362_REG_FIFO_SAMPLES,0xFF);
+	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0A);
+	accelerometer_spi_write_single(ADXL362_REG_FIFO_SAMPLES,0x00);
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x4);
-	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x11);
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
 	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x22);
 	accelerometer_clear_interrupt_bits();
 	GPIO_ClearITPendingBit(GPIO_Pin_5);

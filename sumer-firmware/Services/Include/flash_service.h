@@ -47,9 +47,9 @@ typedef struct {
 
 } seismic_log_metadata;
 
-
+//TODO: length değişkenlerini size_t ile değiştir
 void storage_initialize();
-ErrorStatus storage_write_acceleration_page(uint8_t* buffer,uint8_t temperature);
+ErrorStatus storage_write_acceleration_page(uint8_t* buffer);
 uint8_t storage_is_device_ready();
 void storage_format_flash_chip();
 uint32_t storage_get_next_page_address(uint32_t page_address);
