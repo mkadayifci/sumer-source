@@ -9,6 +9,7 @@ void accelerometer_delay()
 void accelerometer_init()
 {
 	accelerometer_reset();
+	accelerometer_clear_fifo_stream_mode();
 	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0);
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x0);
 	accelerometer_init_external_interrupts();
@@ -49,13 +50,16 @@ void accelerometer_sleep_and_enable_interrupt()
 	//Sets ACT(4) bit HIGH to enable activity interrupt
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,0x10);
 	//Activity Threshold Limit in mg
-	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_L,0x14);
+	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_L,0x46);
 	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_H,0x00);
 	accelerometer_spi_write_single(ADXL362_REG_TIME_ACT,0x01);
 	//only referenced activity mode active
 	accelerometer_spi_write_single(ADXL362_REG_ACT_INACT_CTL,0x03);
+	//400Hz and Halved Bandwidth
+	//accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
 	//100Hz and Halved Bandwidth
-	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x13);
+
 	// Low Noise, Wakeup, Standby
 	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x2A);
 	accelerometer_spi_read_single(ADXL362_REG_STATUS);
@@ -68,6 +72,7 @@ void accelerometer_set_fifo_to_stream_mode(void)
 	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0A);
 	accelerometer_spi_write_single(ADXL362_REG_FIFO_SAMPLES,0x00);
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x4);
+	//accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
 	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
 	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x22);
 	accelerometer_clear_interrupt_bits();
@@ -109,7 +114,7 @@ uint8_t accelerometer_spi_read_single(uint8_t command)
 									ADXL362_SPI_COMMAND_READ,
 									command },
 					2,
-					2);
+					1);
 	return buffer[0];
 }
 

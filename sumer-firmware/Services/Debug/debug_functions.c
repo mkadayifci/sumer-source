@@ -7,13 +7,13 @@
 
 void debug(uint8_t message_type, uint8_t message, uint8_t message_secondary) {
 
-	uint8_t data[] = { 	COMMAND_DEBUG_PRINT,
+	/*uint8_t data[] = { 	COMMAND_DEBUG_PRINT,
 						message_type,
 						message,
 						message_secondary,
 						ASCII_CARRIAGE_RETURN };
 
-	send_data_over_ble_serial(data,DEBUG_WITHOUT_PARAMS_MESSAGE_LENGTH);
+	send_data_over_ble_serial(data,DEBUG_WITHOUT_PARAMS_MESSAGE_LENGTH);*/
 
 }
 

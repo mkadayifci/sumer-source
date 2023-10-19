@@ -18,7 +18,7 @@
 
 
 #define COMMAND_START_SEQ_1		0xFD
-#define COMMAND_START_SEQ_2		0x01
+#define COMMAND_START_SEQ_2		0x02
 #define COMMAND_START_SEQ_3		0xB2
 
 typedef struct {

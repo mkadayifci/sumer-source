@@ -164,6 +164,8 @@ ErrorStatus spi_service_init(uint32_t baudrate) {
  */
 ErrorStatus SpiServiceRead(uint8_t deviceId,uint8_t *pBuffer, uint8_t RegisterAddr,
 		uint8_t NumByteToRead) {
+
+	disable_io_interrupts();
 	/* Set communication mode */
 	SPI_SetMasterCommunicationMode(SPI_FULL_DUPLEX_MODE);
 
@@ -194,6 +196,8 @@ ErrorStatus SpiServiceRead(uint8_t deviceId,uint8_t *pBuffer, uint8_t RegisterAd
 
 	ChangeSelectPin(deviceId,SET);
 
+	enable_io_interrupts();
+
 	return SUCCESS;
 }
 
@@ -207,7 +211,7 @@ ErrorStatus SpiServiceRead(uint8_t deviceId,uint8_t *pBuffer, uint8_t RegisterAd
  */
 ErrorStatus SpiServiceWrite(uint8_t deviceId, uint8_t RegisterAddr,uint8_t *pBuffer, uint8_t NumByteToWrite) {
 	/* Set communication mode */
-
+	disable_io_interrupts();
 
 	SPI_SetMasterCommunicationMode(SPI_TRANSMIT_MODE);
 	ChangeSelectPin(deviceId,RESET);
@@ -223,13 +227,15 @@ ErrorStatus SpiServiceWrite(uint8_t deviceId, uint8_t RegisterAddr,uint8_t *pBuf
 
 
 	ChangeSelectPin(deviceId,SET);
+
+	enable_io_interrupts();
 	return SUCCESS;
 }
 
 
 ErrorStatus SpiServiceWriteSingle( uint8_t deviceId,uint8_t RegisterAddr,uint8_t value) {
 	/* Set communication mode */
-
+	disable_io_interrupts();
 
 	SPI_SetMasterCommunicationMode(SPI_TRANSMIT_MODE);
 	ChangeSelectPin(deviceId,RESET);
@@ -242,6 +248,8 @@ ErrorStatus SpiServiceWriteSingle( uint8_t deviceId,uint8_t RegisterAddr,uint8_t
 	while (SET == SPI_GetFlagStatus(SPI_FLAG_BSY));
 
 	ChangeSelectPin(deviceId,SET);
+
+	enable_io_interrupts();
 	return SUCCESS;
 }
 
@@ -290,8 +298,12 @@ void ChangeSelectPin(uint8_t deviceId, uint8_t newState) {
 ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[],uint8_t command_length, uint16_t bytes_to_read) {
 
 
+	disable_io_interrupts();
+
+
 	while (RESET == SPI_GetFlagStatus(SPI_FLAG_TFE));
 	SPI_SetMasterCommunicationMode(SPI_FULL_DUPLEX_MODE);
+
 
 	ChangeSelectPin(deviceId, RESET);
 
@@ -313,6 +325,8 @@ ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t com
 
 	ChangeSelectPin(deviceId, SET);
 
+	enable_io_interrupts();
+
 	return SUCCESS;
 }
 
@@ -331,6 +345,7 @@ ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t com
  */
 ErrorStatus spi_service_write(uint8_t deviceId,uint8_t command[], uint16_t command_length){
 
+	disable_io_interrupts();
 	SPI_SetMasterCommunicationMode(SPI_TRANSMIT_MODE);
 	ChangeSelectPin(deviceId, RESET);
 
@@ -341,6 +356,8 @@ ErrorStatus spi_service_write(uint8_t deviceId,uint8_t command[], uint16_t comma
 
 
 	ChangeSelectPin(deviceId, SET);
+
+	enable_io_interrupts();
 	return SUCCESS;
 
 }
@@ -356,6 +373,7 @@ ErrorStatus spi_service_write(uint8_t deviceId,uint8_t command[], uint16_t comma
  */
 ErrorStatus spi_service_write_data(uint8_t deviceId,uint8_t command[],uint16_t command_length,uint8_t *pBuffer, uint16_t bytes_to_write){
 
+	disable_io_interrupts();
 	SPI_SetMasterCommunicationMode(SPI_TRANSMIT_MODE);
 	ChangeSelectPin(deviceId, RESET);
 
@@ -375,6 +393,7 @@ ErrorStatus spi_service_write_data(uint8_t deviceId,uint8_t command[],uint16_t c
 
 
 	ChangeSelectPin(deviceId, SET);
+	enable_io_interrupts();
 	return SUCCESS;
 
 }

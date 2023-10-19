@@ -21,6 +21,10 @@ void sumer_clock_set_time(SumerDateTime time_to_set)
 
 SumerDateTime sumer_clock_read_time()
 {
+
+
+
+
 	SumerDateTime ret;
 	ret.year= sumer_clock_read_single(RTCCONTROL_REGISTER);
 	ret.year= sumer_clock_read_single(RTCYEAR_REGISTER);
@@ -31,6 +35,7 @@ SumerDateTime sumer_clock_read_time()
 	ret.hour= ret.hour & (~RTC_HOUR_EXT_BITS);
 	ret.minute= sumer_clock_read_single(RTCMIN_REGISTER);
 	ret.second= sumer_clock_read_single(RTCSEC_REGISTER);
+
 	ret.second = ret.second & (~RTC_ST_BIT);
 	ret.year=((ret.year >> 4 ) *10) + (ret.year & 0x0F);
 	ret.month=((ret.month >> 4 ) *10) + (ret.month & 0x0F);

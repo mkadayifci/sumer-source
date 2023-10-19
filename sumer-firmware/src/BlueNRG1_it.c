@@ -102,24 +102,34 @@ void SysTick_Handler(void)
 
 void GPIO_Handler(void)
 {
+
+	disable_io_interrupts();
+
 	if (GPIO_GetITStatusBit(GPIO_Pin_12) == SET) { //Activity Detected
+		GPIO_EXTICmd(GPIO_Pin_12, DISABLE);
+		GPIO_ClearITPendingBit(GPIO_Pin_12);
 		if(!scribe_is_in_cooldown_period() && !scribe_is_in_scribe_mode()){
 			OnSeismicInterrupt();
 		}
 	}
 	if (GPIO_GetITStatusBit(GPIO_Pin_5) == SET) { //FIFO Watermark
+		GPIO_EXTICmd(GPIO_Pin_5, DISABLE);
+		GPIO_ClearITPendingBit(GPIO_Pin_5);
+
 		OnWatermarkInterrupt();
 	}
+	scribe_tick();
+
+	enable_io_interrupts();
+
 }
 
 
 
-
 void OnSeismicInterrupt(void){
-	GPIO_EXTICmd(GPIO_Pin_12, DISABLE);
+
 	accelerometer_disable_activity_interrupt();
 	accelerometer_clear_interrupt_bits();
-	GPIO_ClearITPendingBit(GPIO_Pin_12);
 	scribe_start();
 
 	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
@@ -127,17 +137,30 @@ void OnSeismicInterrupt(void){
 
 
 void OnWatermarkInterrupt(void){
-	GPIO_EXTICmd(GPIO_Pin_5, DISABLE);
-	accelerometer_clear_interrupt_bits();
-	GPIO_ClearITPendingBit(GPIO_Pin_5);
-	scribe_write_seismic_activity_page();
 
-
+	if (scribe_is_log_window_over())
+	{
+		scribe_stop();
+	}
+	else
+	{
+		scribe_write_seismic_activity_page();
+		GPIO_EXTICmd(GPIO_Pin_5, ENABLE);
+	}
 
 	//debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_ACC_FIFO_WATERMARK);
 }
 
 
+void disable_io_interrupts()
+{
+	NVIC_DisableIRQ(GPIO_IRQn);
+}
+
+void enable_io_interrupts()
+{
+	NVIC_EnableIRQ(GPIO_IRQn);
+}
 
 /******************************************************************************/
 /*                 BlueNRG-1 Peripherals Interrupt Handlers                   */

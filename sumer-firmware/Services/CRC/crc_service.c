@@ -20,7 +20,7 @@ static const uint32_t crc_table[0x100] = {
   0x89B8FD09, 0x8D79E0BE, 0x803AC667, 0x84FBDBD0, 0x9ABC8BD5, 0x9E7D9662, 0x933EB0BB, 0x97FFAD0C, 0xAFB010B1, 0xAB710D06, 0xA6322BDF, 0xA2F33668, 0xBCB4666D, 0xB8757BDA, 0xB5365D03, 0xB1F740B4,
 };
 
-uint32_t crc_service_calculate_crc32c(uint8_t * pData, size_t length)
+uint32_t crc_service_calculate_crc32c(uint8_t * pData, uint16_t length)
 {
     uint32_t Checksum = 0xFFFFFFFF;
     for(unsigned int i=0; i < length; i++)

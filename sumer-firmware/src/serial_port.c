@@ -92,7 +92,7 @@ uint8_t BluetoothDeviceInit(void)
 		return ret;
 	}
 
-	aci_hal_set_tx_power_level(1, 4);
+	aci_hal_set_tx_power_level(1, 7);
 
 	ret = aci_gatt_init();
 	if (ret != BLE_STATUS_SUCCESS) {

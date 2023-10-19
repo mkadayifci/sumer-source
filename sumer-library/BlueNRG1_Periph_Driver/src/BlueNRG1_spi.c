@@ -47,7 +47,7 @@
 #define MIN_DIVIDER     (1)
 #define MAX_DIVIDER     (65024) // MAX_CPSVDR * (MAX_SCR+1)
 
-#define SPI_CLOCK       (16000000)
+#define SPI_CLOCK       (2000000)
 
 /**
 * @}

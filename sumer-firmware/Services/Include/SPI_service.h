@@ -61,7 +61,7 @@
 /**
   * @brief SPI Baudrate
   */
-#define SPI_BAUDRATE                    (1000000)
+#define SUMER_SPI_BAUDRATE                    (1000000)
 
 /**
  * @brief  SPI DR address
@@ -130,7 +130,6 @@
 
 #define SPI_CLOCK_CS_HIGH()                  	GPIO_SetBits(SPI_PERIPH_PIN_CLOCK)
 #define SPI_CLOCK_CS_LOW()                   	GPIO_ResetBits(SPI_PERIPH_PIN_CLOCK)
-
 
 ErrorStatus spi_service_init(uint32_t baudrate);
 ErrorStatus spi_service_read_data(uint8_t deviceId, uint8_t *pBuffer,uint8_t command[],uint8_t command_length,  uint16_t bytes_to_read);

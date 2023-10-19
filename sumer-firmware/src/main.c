@@ -102,7 +102,7 @@ void APP_Tick(void)
 
 	flush_ble_serial_buffer();
 	command_processor_parse_buffer();
-	scribe_cooldown_period_tick();
+	scribe_tick();
 #if REQUEST_CONN_PARAM_UPDATE
   if(APP_FLAG(CONNECTED) && !APP_FLAG(L2CAP_PARAM_UPD_SENT) && Timer_Expired(&l2cap_req_timer))
   {
@@ -119,7 +119,7 @@ void InitializeAllSystems(void){
 	Clock_Init();
 	Radio_Init();
 
-	spi_service_init(SPI_BAUDRATE);
+	spi_service_init(SUMER_SPI_BAUDRATE);
 	sumer_clock_init();
 	accelerometer_init();
 }
@@ -128,14 +128,13 @@ int main(void)
 {
 
 
-	InitializeAllSystems();
-	//storage_format_flash_chip();
+ 	InitializeAllSystems();
+
+ 	//storage_format_flash_chip();
 	//storage_use_256_byte_page();
 
 
-	while(!storage_is_device_ready()){
-			storage_delay();
-	}
+
 
 	uint8_t is_seismic_log_enabled=local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED);
 
@@ -146,7 +145,7 @@ int main(void)
 	while (1) {
 		BTLE_StackTick();
 		APP_Tick();
-		//BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
+		BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
 	}
 }
 

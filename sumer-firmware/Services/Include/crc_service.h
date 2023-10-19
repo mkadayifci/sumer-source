@@ -10,6 +10,6 @@
 
 
 
-uint32_t crc_service_calculate_crc32c(uint8_t * pData, size_t lenth);
+uint32_t crc_service_calculate_crc32c(uint8_t * pData, uint16_t lenth);
 
 #endif /* SERVICES_INCLUDE_CRC_SERVICE_H_ */

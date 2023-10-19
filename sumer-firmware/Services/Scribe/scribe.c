@@ -31,6 +31,11 @@ void scribe_stop(void)
 	APP_FLAG_SET(SCRIBE_COOLDOWN);
 }
 
+uint8_t scribe_is_log_window_over(void)
+{
+	return ( sumer_clock_get_epoch()-scribe_start_time ) > SCRIBE_LOG_PERIOD_IN_SEC;
+}
+
 uint8_t scribe_is_in_scribe_mode(void)
 {
 	return 	APP_FLAG(SCRIBE_MODE);
@@ -50,31 +55,33 @@ uint8_t scribe_is_in_cooldown_period(void)
 	return 0;
 }
 
-void scribe_cooldown_period_tick(void)
+void scribe_tick(void)
 {
-	if(APP_FLAG(SCRIBE_COOLDOWN) && scribe_is_in_cooldown_period())
+	if(APP_FLAG(SCRIBE_COOLDOWN))
 	{
-		if(local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED)==1)
+		if(!scribe_is_in_cooldown_period())
 		{
 			APP_FLAG_CLEAR(SCRIBE_COOLDOWN);
-			accelerometer_sleep_and_enable_interrupt();
+			if(local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED)==1)
+			{
+				accelerometer_sleep_and_enable_interrupt();
+			}
 		}
+
 	}
+
 }
+
+
+
+
 
 void scribe_write_seismic_activity_page(void)
 {
 	uint8_t pBuffer[256];
-	accelerometer_read_FIFO(&pBuffer, sizeof(pBuffer));
+	accelerometer_read_FIFO(&pBuffer, 256);
 	storage_write_acceleration_page(&pBuffer);
-	if (( sumer_clock_get_epoch()-scribe_start_time ) > SCRIBE_LOG_PERIOD_IN_SEC)
-	{
-		scribe_stop();
-	}
-	else
-	{
-		GPIO_EXTICmd(GPIO_Pin_5, ENABLE);
-	}
+
 }
 
 void scribe_set_scribe_mode(void)

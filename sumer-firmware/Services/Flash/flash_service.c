@@ -10,7 +10,7 @@
 
 void storage_delay()
 {
-	for (uint32_t i = 0; i < 200000; i++)__NOP();
+	for (uint32_t i = 0; i < 50000; i++)__NOP();
 }
 
 void storage_initialize()
@@ -42,10 +42,8 @@ ErrorStatus storage_write_acceleration_page(uint8_t * buffer)
 							SPI_DEVICE_ID_FLASH,
 							(uint8_t *)&bytes_to_send,
 							260);
-	while(!storage_is_device_ready())
-	{
-			storage_delay();
-	}
+	storage_wait_until_flash_available();
+
 	if(ret ==SUCCESS){
 		uint32_t time_epoch=sumer_clock_get_epoch();
 		uint8_t temp_H=accelerometer_spi_read_single(ADXL362_REG_TEMP_H);
@@ -56,7 +54,17 @@ ErrorStatus storage_write_acceleration_page(uint8_t * buffer)
 	return ret;
 }
 
-void storage_write_bytes(uint32_t flash_chip_address,uint8_t* buffer,size_t length)
+
+void storage_wait_until_flash_available()
+{
+	storage_delay();
+	while(!storage_is_device_ready())
+	{
+			storage_delay();
+	}
+}
+
+void storage_write_bytes(uint32_t flash_chip_address,uint8_t* buffer,uint16_t length)
 {
 	ErrorStatus ret = spi_service_write_data(
 							SPI_DEVICE_ID_FLASH,
@@ -69,10 +77,8 @@ void storage_write_bytes(uint32_t flash_chip_address,uint8_t* buffer,size_t leng
 							4,
 							buffer,
 							length);
-	while(!storage_is_device_ready())
-	{
-			storage_delay();
-	}
+
+	storage_wait_until_flash_available();
 }
 
 uint8_t storage_is_device_ready()
@@ -89,7 +95,7 @@ uint8_t storage_is_device_ready()
 	return read_buffer[0] & 0x80;
 }
 
-void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,size_t length)
+void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,uint16_t length)
 {
 	ErrorStatus ret = spi_service_read_data(
 							SPI_DEVICE_ID_FLASH,
@@ -114,6 +120,8 @@ void storage_format_flash_chip()
 		0x80,
 		0x9A,
 	}, 4);
+
+	storage_wait_until_flash_available();
 }
 
 void storage_use_256_byte_page()
@@ -124,17 +132,17 @@ void storage_use_256_byte_page()
 		0x80,
 		0xA6,
 	}, 4);
+
+	storage_wait_until_flash_available();
 }
 
 static uint32_t storage_get_next_page()
 {
-	uint32_t next_page_addr=0x00;
-	uint32_t next_page_address_flash_addr= STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE;
-	storage_read_bytes(next_page_address_flash_addr,(uint8_t *)&next_page_addr,4);
-	if(next_page_addr==0x00 || next_page_addr==0xFFFFFFFF)
+	uint32_t next_page_addr=storage_get_next_page_from_flash();
+	if(next_page_addr==0x00 || next_page_addr==0xFFFFFFFF || next_page_addr>STORAGE_ADDR_END_PAGE_OF_ACCELERATION_LOG)
 	{
 		next_page_addr=STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG;
-		storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t *)&next_page_addr,4);
+		storage_write_next_page_to_flash(next_page_addr);
 	}
 	return next_page_addr;
 }
@@ -143,7 +151,28 @@ static void storage_increase_next_page_value(uint32_t page_address)
 {
 
 	uint32_t increased_next_page_addr=storage_get_next_page_address(page_address);
-	storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t *)&increased_next_page_addr,4);
+	storage_write_next_page_to_flash(increased_next_page_addr);
+
+}
+
+static void storage_write_next_page_to_flash(uint32_t next_page_addr){
+	storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t[])  {
+			next_page_addr & 0xFF,
+			next_page_addr>>8 & 0xFF,
+			next_page_addr>>16 & 0xFF,
+			next_page_addr>>24 & 0xFF
+		},4);
+}
+
+static uint32_t storage_get_next_page_from_flash()
+{
+	uint8_t pageAddressBuffer[4];
+	storage_read_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t * )&pageAddressBuffer,4);
+	uint32_t next_page_addr = 	(uint32_t)pageAddressBuffer[0] |
+								(uint32_t)pageAddressBuffer[1] << 8 |
+								(uint32_t)pageAddressBuffer[2] << 16 |
+								(uint32_t)pageAddressBuffer[3] << 24;
+	return next_page_addr;
 }
 
 uint32_t storage_get_next_page_address(uint32_t page_address)

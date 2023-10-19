@@ -181,15 +181,15 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer)
 								(int16_t)metadata_buffer[6] << 8 ;
 
 		int32_t difference= active_page_epoch - previous_page_epoch;
-		if (previous_page_epoch != 0 && abs(difference) > SCRIBE_LOG_PERIOD_IN_SEC) //Page belongs to different log
+		if (previous_page_epoch != 0 && abs(difference) >= SCRIBE_COOLDOWN_PERIOD_IN_SEC) //Page belongs to different log
 		{
 			break;
 		}
 		storage_read_bytes(active_page_address, (uint8_t * )&page_content_buffer, 256);
-		uint32_t crc32_value = crc_service_calculate_crc32c((uint8_t * )&page_content_buffer,256);
+//		uint32_t crc32_value = crc_service_calculate_crc32c((uint8_t * )&page_content_buffer,256);
 
 		current_page_transfer_metadata.chunk_count=256/LOG_PAGE_TRANSFER_CHUNK_SIZE;
-		current_page_transfer_metadata.page_crc = crc32_value;
+		current_page_transfer_metadata.page_crc = 0;
 		current_page_transfer_metadata.page_epoch =active_page_epoch;
 		current_page_transfer_metadata.page_order_in_session=page_order;
 		current_page_transfer_metadata.session_id=seismic_log_detail_session_counter;
@@ -298,7 +298,7 @@ void command_processor_sesimic_log_mode_response(void) {
 
 void command_processor_send_seismic_demo_response(void)
 {
-	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x13);
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
 	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x22);
 	uint32_t start_time_epoch=sumer_clock_get_epoch();
 
@@ -413,7 +413,7 @@ void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_me
 								(uint32_t)metadata_buffer[2] << 16 |
 								(uint32_t)metadata_buffer[3] << 24;
 
-		if (abs(previous_page_epoch - page_epoch) > SCRIBE_LOG_PERIOD_IN_SEC) //New Seismic Log Page Founded
+		if (abs(previous_page_epoch - page_epoch) >= SCRIBE_COOLDOWN_PERIOD_IN_SEC) //New Seismic Log Page Founded
 		{
 			if (page_epoch != UINT32_MAX && page_epoch != 0) {
 				seismic_log_metadata_array[retIndex].log_epoch = page_epoch;
@@ -432,13 +432,27 @@ void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_me
 		previous_page_epoch=page_epoch;
 	}
 
-/*	if (retIndex > 1) { //There is at least 2 records
-		if (abs(seismic_log_metadata_array[0].log_epoch - seismic_log_metadata_array[retIndex - 1].log_epoch) < SCRIBE_LOG_PERIOD_IN_SEC) { // Is there any rollover record. If true these two records have to merge
-			seismic_log_metadata_array[retIndex - 1].log_epoch
-		}
-	}*/
 
-	//TODO:ilk ve son log metadata kayıdına bak. arada log periyodu + cooldown dan az yer varsa. 0'daki kayıdı sil rollover yapıyor.
+	if (retIndex > 2) { //There is at least 2 records
+		uint16_t last_index=retIndex - 2;
+		if (abs( seismic_log_metadata_array[last_index].log_epoch - seismic_log_metadata_array[0].log_epoch) < SCRIBE_LOG_PERIOD_IN_SEC)// Is there any rollover record. If true these two records have to merge
+		{
+
+			seismic_log_metadata_array[0].log_epoch=seismic_log_metadata_array[last_index].log_epoch;
+			seismic_log_metadata_array[0].page_base_address=seismic_log_metadata_array[last_index].page_base_address;
+			seismic_log_metadata_array[0].page_count=seismic_log_metadata_array[last_index].page_count+seismic_log_metadata_array[0].page_count;
+
+			//Remove Last Item
+
+			seismic_log_metadata_array[last_index].log_epoch=0;
+			seismic_log_metadata_array[last_index].page_base_address=0;
+			seismic_log_metadata_array[last_index].log_index=0;
+			seismic_log_metadata_array[last_index].page_count=0;
+			seismic_log_metadata_array[last_index].total_log_count=0;
+		}
+	}
+
+
 }
 
 void command_processor_send_total_written_page_count(void)

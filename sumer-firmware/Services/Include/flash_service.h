@@ -15,7 +15,8 @@
 
 
 #define STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG		0x000C0000 //3. sector first page
-#define STORAGE_ADDR_END_PAGE_OF_ACCELERATION_LOG		0x00800000 //last page address
+//#define STORAGE_ADDR_END_PAGE_OF_ACCELERATION_LOG		0x00800000 //last page address
+#define STORAGE_ADDR_END_PAGE_OF_ACCELERATION_LOG		0x000EA800 //last page address
 
 #define STORAGE_FLASH_CHIP_ADDR_METADATA_BASE			0x00000800 //Start of Sector 0b
 
@@ -48,7 +49,7 @@ typedef struct {
 
 } seismic_log_metadata;
 
-//TODO: length değişkenlerini size_t ile değiştir
+
 void storage_initialize();
 ErrorStatus storage_write_acceleration_page(uint8_t * buffer);
 uint8_t storage_is_device_ready();
@@ -58,9 +59,13 @@ void storage_use_256_byte_page();
 static uint32_t  storage_get_next_page();
 static void storage_increase_next_page_value(uint32_t page_address);
 static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,uint8_t temp_H,uint8_t temp_L);
-void storage_write_bytes(uint32_t  flash_chip_address,uint8_t * buffer,size_t length);
-void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,size_t length);
+void storage_write_bytes(uint32_t  flash_chip_address,uint8_t * buffer,uint16_t length);
+void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,uint16_t length);
 void storage_get_page_metadata(uint16_t page_index,uint8_t * buffer);
 void storage_get_page_metadata_by_page_address(uint32_t page_address,uint8_t * buffer);
+static void storage_write_next_page_to_flash(uint32_t next_page_addr);
+static uint32_t storage_get_next_page_from_flash();
+void storage_wait_until_flash_available();
+
 
 #endif /* SERVICES_FLASH_FLASH_SERVICE_H_ */
