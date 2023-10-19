@@ -74,13 +74,12 @@ void scribe_tick(void)
 
 
 
-
+uint8_t scribe_accelerometer_FIFO_buffer[256];
 
 void scribe_write_seismic_activity_page(void)
 {
-	uint8_t pBuffer[256];
-	accelerometer_read_FIFO(&pBuffer, 256);
-	storage_write_acceleration_page(&pBuffer);
+	accelerometer_read_FIFO(&scribe_accelerometer_FIFO_buffer, 256);
+	storage_write_acceleration_page(&scribe_accelerometer_FIFO_buffer);
 
 }
 

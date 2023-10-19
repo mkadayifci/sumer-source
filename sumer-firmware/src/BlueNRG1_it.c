@@ -98,6 +98,20 @@ void SysTick_Handler(void)
   SysCount_Handler(); 
 }
 
+uint8_t io_interrupt_disabled_count=0;
+void disable_io_interrupts()
+{
+	io_interrupt_disabled_count++;
+	NVIC_DisableIRQ(GPIO_IRQn);
+}
+
+void enable_io_interrupts()
+{
+	if(io_interrupt_disabled_count==1){
+		NVIC_EnableIRQ(GPIO_IRQn);
+	}
+	io_interrupt_disabled_count--;
+}
 
 
 void GPIO_Handler(void)
@@ -105,23 +119,22 @@ void GPIO_Handler(void)
 
 	disable_io_interrupts();
 
-	if (GPIO_GetITStatusBit(GPIO_Pin_12) == SET) { //Activity Detected
+	if (GPIO_GetITStatusBit(GPIO_Pin_12) == SET) //Activity Detected
+	{
 		GPIO_EXTICmd(GPIO_Pin_12, DISABLE);
 		GPIO_ClearITPendingBit(GPIO_Pin_12);
 		if(!scribe_is_in_cooldown_period() && !scribe_is_in_scribe_mode()){
 			OnSeismicInterrupt();
 		}
 	}
-	if (GPIO_GetITStatusBit(GPIO_Pin_5) == SET) { //FIFO Watermark
+	if (GPIO_GetITStatusBit(GPIO_Pin_5) == SET)  //FIFO Watermark
+	{
 		GPIO_EXTICmd(GPIO_Pin_5, DISABLE);
 		GPIO_ClearITPendingBit(GPIO_Pin_5);
 
 		OnWatermarkInterrupt();
 	}
-	scribe_tick();
-
 	enable_io_interrupts();
-
 }
 
 
@@ -144,7 +157,14 @@ void OnWatermarkInterrupt(void){
 	}
 	else
 	{
-		scribe_write_seismic_activity_page();
+		uint8_t fifo_samples_L=accelerometer_spi_read_single(ADXL362_REG_FIFO_L);
+		uint8_t fifo_samples_H=accelerometer_spi_read_single(ADXL362_REG_FIFO_H);
+		uint16_t fif_samples_count=(uint16_t)fifo_samples_H << 8 | fifo_samples_L;
+
+
+		if(fif_samples_count>=256){
+			scribe_write_seismic_activity_page();
+		}
 		GPIO_EXTICmd(GPIO_Pin_5, ENABLE);
 	}
 
@@ -152,15 +172,6 @@ void OnWatermarkInterrupt(void){
 }
 
 
-void disable_io_interrupts()
-{
-	NVIC_DisableIRQ(GPIO_IRQn);
-}
-
-void enable_io_interrupts()
-{
-	NVIC_EnableIRQ(GPIO_IRQn);
-}
 
 /******************************************************************************/
 /*                 BlueNRG-1 Peripherals Interrupt Handlers                   */

@@ -55,6 +55,7 @@ ErrorStatus storage_write_acceleration_page(uint8_t * buffer)
 }
 
 
+
 void storage_wait_until_flash_available()
 {
 	storage_delay();

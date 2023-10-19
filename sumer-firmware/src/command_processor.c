@@ -22,7 +22,7 @@ uint8_t command_buffer[COMMAND_BUFFER_SIZE];
 uint8_t buffer_position=0;
 
 void command_processor_delay(){
-	for (uint32_t i = 0; i < 100000; i++)__NOP();
+	for (uint32_t i = 0; i < 20000; i++)__NOP();
 }
 
 void command_processor_add_to_buffer(uint8_t *receiveBuffer, uint8_t length)
@@ -302,7 +302,7 @@ void command_processor_send_seismic_demo_response(void)
 	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x22);
 	uint32_t start_time_epoch=sumer_clock_get_epoch();
 
-	while(sumer_clock_get_epoch() - start_time_epoch <15 )
+	while(sumer_clock_get_epoch() - start_time_epoch <20 )
 	{
 		uint8_t x_data_H=accelerometer_spi_read_single(ADXL362_REG_XDATA_H);
 		uint8_t x_data_L=accelerometer_spi_read_single(ADXL362_REG_XDATA_L);
