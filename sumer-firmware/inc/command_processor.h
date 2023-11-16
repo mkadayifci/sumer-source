@@ -25,6 +25,7 @@ typedef struct {
 	uint32_t log_epoch;
 	uint32_t page_base_address;
 	uint16_t page_count;
+	uint16_t seismic_log_group_id;
 	uint8_t log_index;
 	uint8_t total_log_count;
 } log_metadata_t;

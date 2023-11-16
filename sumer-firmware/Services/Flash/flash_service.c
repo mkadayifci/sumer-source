@@ -6,7 +6,7 @@
 #include "time.h"
 #include "accelerometer.h"
 #define PORT
-
+#define MAX_SEISMIC_LOG_GROUP_ID	0x7FFF
 
 void storage_delay()
 {
@@ -30,10 +30,12 @@ void storage_initialize()
  * @retval ErrorStatus: error status @ref ErrorStatus
  *         This parameter can be: SUCCESS or ERROR.
  */
+
 ErrorStatus storage_write_acceleration_page(uint8_t * buffer,uint8_t is_first_page)
 {
 	uint32_t page_address=storage_get_next_page();
 	uint8_t bytes_to_send[260];
+	uint16_t seismic_log_group_id=0;
 	bytes_to_send[0]=STORAGE_OPCODE_WRITE_DEFAULT;
 	bytes_to_send[1]=page_address>>16& 0xFF;
 	bytes_to_send[2]=page_address>>8 & 0xFF;
@@ -48,12 +50,27 @@ ErrorStatus storage_write_acceleration_page(uint8_t * buffer,uint8_t is_first_pa
 							(uint8_t *)&bytes_to_send,
 							260);
 	storage_wait_until_flash_available();
+	seismic_log_group_id = storage_get_last_seismic_log_group_id_from_flash();
+	if(is_first_page)
+	{
+		seismic_log_group_id++;
+		if(seismic_log_group_id>MAX_SEISMIC_LOG_GROUP_ID)
+		{
+			seismic_log_group_id=1;
+		}
+		storage_write_last_seismic_log_group_id_to_flash(seismic_log_group_id);
+	}
 
 	if(ret ==SUCCESS){
 		uint32_t time_epoch=sumer_clock_get_epoch();
 		uint8_t temp_H=accelerometer_spi_read_single(ADXL362_REG_TEMP_H);
 		uint8_t temp_L=accelerometer_spi_read_single(ADXL362_REG_TEMP_L);
-		storage_set_page_metadata(page_address,time_epoch,temp_H,temp_L);
+		uint16_t seismic_log_group_id_value = seismic_log_group_id;
+		if(is_first_page)
+		{
+			seismic_log_group_id_value |= (uint16_t)(1 <<15);
+		}
+		storage_set_page_metadata(page_address,time_epoch,seismic_log_group_id_value,temp_H,temp_L);
 		storage_increase_next_page_value(page_address);
 	}
 	return ret;
@@ -195,6 +212,7 @@ static void storage_write_next_page_to_flash(uint32_t next_page_addr){
 		},4);
 }
 
+
 static uint32_t storage_get_next_page_from_flash()
 {
 	uint8_t pageAddressBuffer[4];
@@ -206,6 +224,24 @@ static uint32_t storage_get_next_page_from_flash()
 	return next_page_addr;
 }
 
+static void storage_write_last_seismic_log_group_id_to_flash(uint16_t last_seismic_log_group_id)
+{
+	storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_LAST_SEISMIC_LOG_GROUP_ID,(uint8_t[])  {
+		last_seismic_log_group_id & 0xFF,
+		last_seismic_log_group_id>>8 & 0xFF
+		},2);
+}
+
+static uint16_t storage_get_last_seismic_log_group_id_from_flash()
+{
+	uint8_t seismic_log_group_id_buffer[2];
+	storage_read_bytes(STORAGE_FLASH_CHIP_ADDR_LAST_SEISMIC_LOG_GROUP_ID,(uint8_t * )&seismic_log_group_id_buffer,2);
+	uint16_t seismic_log_group_id = 	(uint16_t)seismic_log_group_id_buffer[0] |
+										(uint16_t)seismic_log_group_id_buffer[1] << 8 ;
+	return seismic_log_group_id;
+}
+
+
 uint32_t storage_get_next_page_address(uint32_t page_address)
 {
 	uint32_t increased_next_page_addr=page_address+0x100; //Last byte is in page position. So wee add 255+1 to increase page addr
@@ -216,7 +252,7 @@ uint32_t storage_get_next_page_address(uint32_t page_address)
 	return increased_next_page_addr;
 }
 
-static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,uint8_t temp_H,uint8_t temp_L)
+static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,uint16_t seismic_log_group_id,uint8_t temp_H,uint8_t temp_L)
 {
 	//Metadata offset -> (page address -3072) * 8
 	uint32_t metadata_offset= (((page_address>>8 ) - (STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG>>8))) * 8 ;
@@ -229,8 +265,8 @@ static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,
 			time_epoch>>8 & 0xFF,
 			time_epoch>>16 & 0xFF,
 			time_epoch>>24 & 0xFF,
-			0x00,
-			0x00,
+			seismic_log_group_id & 0xFF,
+			seismic_log_group_id>>8 & 0xFF,
 			temp_H,
 			temp_L
 		},

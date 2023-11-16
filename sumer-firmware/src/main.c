@@ -169,10 +169,7 @@ void hci_hardware_error_event(uint8_t Hardware_Code)
 
 SleepModes App_SleepMode_Check(SleepModes sleepMode)
 {
-	if(uyuma){
-		return SLEEPMODE_RUNNING;
-	}
-	//return SLEEPMODE_RUNNING;
+	return SLEEPMODE_RUNNING;
 
 	if (APP_FLAG(SCRIBE_MODE)||APP_FLAG(CONNECTED) )
 		return SLEEPMODE_RUNNING;

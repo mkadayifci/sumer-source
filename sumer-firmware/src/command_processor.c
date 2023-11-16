@@ -160,10 +160,11 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer)
 	send_data_over_ble_serial_and_force((uint8_t * )&response, sizeof(response));
 	uint8_t page_content_buffer[256];
 	uint8_t metadata_buffer[8];
-	uint32_t active_page_epoch=0;
+	uint16_t active_page_log_group_id=0;
 	int16_t active_page_temprature=0;
-	uint32_t previous_page_epoch=0;
+	uint16_t previous_page_log_group_id=0;
 	uint16_t page_order=0;
+	uint32_t active_page_epoch=0;
 	uint32_t active_page_address=seismic_log_base_address;
 	page_transfer_metadata_t current_page_transfer_metadata;
 
@@ -171,16 +172,20 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer)
 	{
 		page_order++;
 		storage_get_page_metadata_by_page_address(active_page_address,metadata_buffer);
-		active_page_epoch =  	(uint32_t)metadata_buffer[0] |
-						(uint32_t)metadata_buffer[1] << 8 |
-						(uint32_t)metadata_buffer[2] << 16 |
-						(uint32_t)metadata_buffer[3] << 24;
 
-		active_page_temprature = (int16_t)metadata_buffer[7] |
-								(int16_t)metadata_buffer[6] << 8 ;
+		active_page_epoch =	(uint32_t)metadata_buffer[0] |
+							(uint32_t)metadata_buffer[1] << 8 |
+							(uint32_t)metadata_buffer[2] << 16 |
+							(uint32_t)metadata_buffer[3] << 24;
 
-		int32_t difference= active_page_epoch - previous_page_epoch;
-		if (previous_page_epoch != 0 && abs(difference) >= SCRIBE_COOLDOWN_PERIOD_IN_SEC) //Page belongs to different log
+		active_page_log_group_id =  (uint16_t)metadata_buffer[4] |
+									(uint16_t)metadata_buffer[5] << 8;
+		active_page_log_group_id= active_page_log_group_id & ~(1<<15);
+
+		active_page_temprature = 	(int16_t)metadata_buffer[7] |
+									(int16_t)metadata_buffer[6] << 8 ;
+
+		if (previous_page_log_group_id != 0 && (previous_page_log_group_id != active_page_log_group_id)) //Page belongs to different log
 		{
 			break;
 		}
@@ -245,7 +250,7 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer)
 			send_data_over_ble_serial_and_force((uint8_t * )&page_chunk_response, sizeof(page_chunk_response));
 		}
 		active_page_address=storage_get_next_page_address(active_page_address);
-		previous_page_epoch=active_page_epoch;
+		previous_page_log_group_id=active_page_log_group_id;
 	}
 
 	//ilk page crc hesapla
@@ -432,7 +437,6 @@ void command_processor_set_seismic_log_list_total_counts(log_metadata_t * seismi
 void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_metadata_array)
 {
 	uint8_t metadata_buffer[8];
-	uint32_t previous_page_epoch=0;
 	uint8_t retIndex=0;
 	uint8_t lastSeismicLogStartIndex=0;
 	uint16_t pageCounter =0;
@@ -440,17 +444,26 @@ void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_me
 	for(uint16_t i = 0;i<STORAGE_TOTAL_ACCELARATION_LOG_PAGE_COUNT;i++)
 	{
 		storage_get_page_metadata(i,(uint8_t *)&metadata_buffer);
+
 		uint32_t page_epoch =  	(uint32_t)metadata_buffer[0] |
 	             	 	 	 	(uint32_t)metadata_buffer[1] << 8 |
 								(uint32_t)metadata_buffer[2] << 16 |
 								(uint32_t)metadata_buffer[3] << 24;
 
-		if (abs(previous_page_epoch - page_epoch) >= SCRIBE_COOLDOWN_PERIOD_IN_SEC) //New Seismic Log Page Founded
+		uint16_t seismic_log_group_id = (uint16_t)metadata_buffer[4] |
+ 	 	 	 							(uint16_t)metadata_buffer[5] << 8 ;
+
+		uint8_t is_first_page_of_seiecmic_log_group = (seismic_log_group_id & (1<<15))>0;
+		seismic_log_group_id=  seismic_log_group_id & ~(1<<15);
+
+		if (is_first_page_of_seiecmic_log_group) //New Seismic Log Page Founded
 		{
 			if (page_epoch != UINT32_MAX && page_epoch != 0) {
 				seismic_log_metadata_array[retIndex].log_epoch = page_epoch;
 				seismic_log_metadata_array[retIndex].page_base_address = (i * 256) + STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG;
 				seismic_log_metadata_array[retIndex].log_index=retIndex+1;
+				seismic_log_metadata_array[retIndex].seismic_log_group_id= seismic_log_group_id;
+
 			}
 
 			if (retIndex>0) {
@@ -461,13 +474,14 @@ void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_me
 			retIndex++;
 		}
 		pageCounter++;
-		previous_page_epoch=page_epoch;
+
 	}
 
 
 	if (retIndex > 2) { //There is at least 2 records
 		uint16_t last_index=retIndex - 2;
-		if (abs( seismic_log_metadata_array[last_index].log_epoch - seismic_log_metadata_array[0].log_epoch) < SCRIBE_LOG_PERIOD_IN_SEC)// Is there any rollover record. If true these two records have to merge
+
+		if ( seismic_log_metadata_array[last_index].seismic_log_group_id  == seismic_log_metadata_array[0].seismic_log_group_id   )// Is there any rollover record. If true these two records have to merge
 		{
 
 			seismic_log_metadata_array[0].log_epoch=seismic_log_metadata_array[last_index].log_epoch;
@@ -480,6 +494,7 @@ void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_me
 			seismic_log_metadata_array[last_index].page_base_address=0;
 			seismic_log_metadata_array[last_index].log_index=0;
 			seismic_log_metadata_array[last_index].page_count=0;
+			seismic_log_metadata_array[last_index].seismic_log_group_id=0;
 			seismic_log_metadata_array[last_index].total_log_count=0;
 		}
 	}
