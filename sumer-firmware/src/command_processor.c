@@ -16,7 +16,7 @@
 #include "scribe.h"
 #include "stdlib.h"
 #include "crc_service.h"
-
+#include "state_manager.h"
 
 uint8_t command_buffer[COMMAND_BUFFER_SIZE];
 uint8_t buffer_position=0;
@@ -108,11 +108,7 @@ void command_processor_process_command(uint8_t *receiveBuffer, uint8_t length)
 			command_processor_send_seismic_demo_response();
 			break;
 		case COMMAND_SET_SEISMIC_LOG_MODE:
-			local_settings_set_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED,receiveBuffer[1]);
-			if(receiveBuffer[1]>0 && !APP_FLAG(SCRIBE_COOLDOWN)){
-				accelerometer_sleep_and_enable_interrupt();
-			}
-			command_processor_sesimic_log_mode_response();
+			command_processor_set_seismic_log_mode_response(receiveBuffer[1]);
 			break;
 		case COMMAND_GET_SEISMIC_LOG_MODE:
 			command_processor_sesimic_log_mode_response();
@@ -122,6 +118,9 @@ void command_processor_process_command(uint8_t *receiveBuffer, uint8_t length)
 			break;
 		case COMMAND_GET_DEVICE_SERIAL_NUMBER:
 			command_processor_get_device_serial_number_response();
+			break;
+		case COMMAND_FORMAT_FLASH:
+			command_processor_format_flash_response();
 			break;
 	}
 }
@@ -261,6 +260,21 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer)
 }
 
 
+
+
+void command_processor_set_seismic_log_mode_response(uint8_t new_log_mode)
+{
+
+	state_manager_set_is_scribe_mode_enabled(new_log_mode);
+	if(new_log_mode && !APP_FLAG(SCRIBE_COOLDOWN)){
+		APP_FLAG_SET(WAITING_FOR_ACTIVITY);
+		accelerometer_sleep_and_enable_interrupt();
+	}
+	command_processor_sesimic_log_mode_response();
+}
+
+
+
 void command_processor_get_device_serial_number_response(void) {
 	uint8_t response[] = {
 			COMMAND_START_SEQ_1,
@@ -277,9 +291,27 @@ void command_processor_get_device_serial_number_response(void) {
 	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
 }
 
+
+void command_processor_format_flash_response(void)
+{
+
+	storage_format_flash_chip();
+	storage_use_256_byte_page();
+	uint8_t response[] = {
+				COMMAND_START_SEQ_1,
+				COMMAND_START_SEQ_2,
+				COMMAND_START_SEQ_3,
+				2,
+				COMMAND_FORMAT_FLASH,
+				1
+				};
+
+	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
+}
+
 void command_processor_sesimic_log_mode_response(void) {
 
-	uint8_t is_seismic_log_enabled=local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED);
+	uint8_t is_seismic_log_enabled= state_manager_is_scribe_mode_enabled();
 	uint8_t response[] = {
 			COMMAND_START_SEQ_1,
 			COMMAND_START_SEQ_2,

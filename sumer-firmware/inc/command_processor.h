@@ -48,11 +48,10 @@ typedef struct {
 #define COMMAND_SET_SEISMIC_LOG_MODE			0x50
 #define COMMAND_GET_SEISMIC_LOG_MODE			0x51
 #define COMMAND_GET_SEISMIC_LOG_DETAIL			0x52
-
-#define COMMAND_GET_SEISMIC_LOG_DETAIL			0x52
 #define COMMAND_PAGE_TRANSFER_METADATA			0x53
 #define COMMAND_PAGE_CHUNK						0x54
 #define COMMAND_GET_DEVICE_SERIAL_NUMBER		0x55
+#define COMMAND_FORMAT_FLASH					0x56
 
 
 #define FIRMWARE_VERSION_MAJOR	 	0x01
@@ -61,6 +60,7 @@ typedef struct {
 void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer);
 void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_metadata_array);
 void command_processor_set_seismic_log_list_total_counts(log_metadata_t * seismic_log_metadata_array);
+void command_processor_set_seismic_log_mode_response(uint8_t new_log_mode);
 void command_processor_sesimic_log_mode_response(void);
 void command_processor_send_version_response(void);
 void command_processor_get_device_serial_number_response(void);
@@ -75,5 +75,6 @@ static void command_processor_shrink_buffer(uint8_t position_to_move);
 void command_processor_parse_buffer();
 void command_processor_add_to_buffer(uint8_t *receiveBuffer, uint8_t length);
 void command_processor_process_command(uint8_t* receiveBuffer,uint8_t length);
+void command_processor_format_flash_response(void);
 
 #endif /* INC_COMMAND_PROCESSOR_H_ */

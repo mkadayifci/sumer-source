@@ -5,6 +5,8 @@
  *      Author: mkadayifci
  */
 
+#include "stdint.h"
+
 #ifndef SERVICES_INCLUDE_LOCAL_SETTINGS_H_
 #define SERVICES_INCLUDE_LOCAL_SETTINGS_H_
 

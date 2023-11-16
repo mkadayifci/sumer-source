@@ -13,6 +13,11 @@ void storage_delay()
 	for (uint32_t i = 0; i < 50000; i++)__NOP();
 }
 
+void storage_mini_delay()
+{
+	for (uint32_t i = 0; i < 5000; i++)__NOP();
+}
+
 void storage_initialize()
 {
 
@@ -25,7 +30,7 @@ void storage_initialize()
  * @retval ErrorStatus: error status @ref ErrorStatus
  *         This parameter can be: SUCCESS or ERROR.
  */
-ErrorStatus storage_write_acceleration_page(uint8_t * buffer)
+ErrorStatus storage_write_acceleration_page(uint8_t * buffer,uint8_t is_first_page)
 {
 	uint32_t page_address=storage_get_next_page();
 	uint8_t bytes_to_send[260];
@@ -112,6 +117,31 @@ void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,uint16_t le
 							8,
 							length);
 }
+
+void storage_enter_deep_sleep_mode()
+{
+	//return;
+	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
+		0x79
+	}, 1);
+
+
+	storage_mini_delay();
+}
+
+void storage_resume_deep_sleep_mode()
+{
+	//return;
+	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
+		0xAB
+	}, 1);
+
+
+	storage_mini_delay();
+
+
+}
+
 
 void storage_format_flash_chip()
 {

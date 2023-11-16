@@ -1569,7 +1569,7 @@ tBleStatus aci_hal_set_tx_power_level(uint8_t En_High_Power,
  * @brief This command returns the number of packets sent in Direct Test Mode.
  *        When the Direct TX test is started, a 32-bit counter is used to count
  *        how many packets have been transmitted.  This command can be used to
- *        check how many packets have been sent during the Direct TX test. The
+ *        check how many packets have been sent during the Direct TX test. The0
  *        counter starts from 0 and counts upwards. The counter can wrap and
  *        start from 0 again.  The counter is not cleared until the next Direct
  *        TX test starts.

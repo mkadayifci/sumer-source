@@ -1,4 +1,3 @@
-
 #include <command_processor.h>
 #include <stdio.h>
 #include <stdint.h>

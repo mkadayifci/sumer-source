@@ -703,6 +703,7 @@ uint8_t BlueNRG_Sleep(SleepModes sleepMode,
   return SUCCESS;
 }
 
+
 uint16_t BlueNRG_WakeupSource(void)
 {
   uint16_t src=NO_WAKEUP_RESET;

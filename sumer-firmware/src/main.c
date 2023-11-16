@@ -41,7 +41,6 @@ NOTEs:
 #include "ble_const.h"
 #include "bluenrg1_stack.h"
 #include "sleep.h"
-
 #include "OTA_btl.h"
 #include "SPI_Service.h"
 #include "serial_port.h"
@@ -53,6 +52,7 @@ NOTEs:
 #include "flash_service.h"
 #include "local_settings.h"
 #include "app_state.h"
+#include "state_manager.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -118,34 +118,36 @@ void InitializeAllSystems(void){
 	SystemInit();
 	Clock_Init();
 	Radio_Init();
-
+	//SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_PKA, DISABLE);
 	spi_service_init(SUMER_SPI_BAUDRATE);
 	sumer_clock_init();
 	accelerometer_init();
-}
+	storage_enter_deep_sleep_mode();
 
+	if(state_manager_is_scribe_mode_enabled())
+	{
+		APP_FLAG_SET(WAITING_FOR_ACTIVITY);
+		accelerometer_sleep_and_enable_interrupt();
+	}
+}
+uint8_t uyuma=0;
 int main(void)
 {
-
-
  	InitializeAllSystems();
-
- 	//storage_format_flash_chip();
-	//storage_use_256_byte_page();
-
-
-
-
-	uint8_t is_seismic_log_enabled=local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED);
-
-	if(is_seismic_log_enabled==1){
-		//accelerometer_sleep_and_enable_interrupt();
-	}
-
-	while (1) {
-		BTLE_StackTick();
+ 	while (1)
+ 	{
 		APP_Tick();
-		BlueNRG_Sleep(SLEEPMODE_NOTIMER, 0, 0);
+ 		BTLE_StackTick();
+		BlueNRG_Sleep(SLEEPMODE_NOTIMER, WAKEUP_IO12, (WAKEUP_IOx_HIGH << WAKEUP_IO12_SHIFT_MASK) );
+
+
+		//state_manager_commit_to_flash -- Maybe we can save to flash with a timer that runs every 24hours
+
+
+
+		/*if(BlueNRG_WakeupSource() & WAKEUP_IOx_HIGH << WAKEUP_IO12_SHIFT_MASK){
+			uyuma=1;
+		}*/
 	}
 }
 
@@ -167,11 +169,15 @@ void hci_hardware_error_event(uint8_t Hardware_Code)
 
 SleepModes App_SleepMode_Check(SleepModes sleepMode)
 {
-	return SLEEPMODE_RUNNING;
-  /*if(SdkEvalComIOTxFifoNotEmpty() || SdkEvalComUARTBusy())
-    return SLEEPMODE_RUNNING;*/
+	if(uyuma){
+		return SLEEPMODE_RUNNING;
+	}
+	//return SLEEPMODE_RUNNING;
+
+	if (APP_FLAG(SCRIBE_MODE)||APP_FLAG(CONNECTED) )
+		return SLEEPMODE_RUNNING;
   
-  return SLEEPMODE_NOTIMER;
+	return SLEEPMODE_NOTIMER;
 }
 
 /***************************************************************************************/

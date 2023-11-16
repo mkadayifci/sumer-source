@@ -20,9 +20,10 @@
 
 #define STORAGE_FLASH_CHIP_ADDR_METADATA_BASE			0x00000800 //Start of Sector 0b
 
-#define STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE				0x00000000 //0a sector  first page, base+0 4 byte
-#define STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED	0x00000004 //0a sector  base+4, 2 byte
-
+#define STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE					0x00000000 //0a sector  first page, base+0 4 byte
+#define STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED		0x00000004 //0a sector  base+4, 1 byte
+#define STORAGE_FLASH_CHIP_ADDR_LAST_SEISMIC_LOG_GROUP_ID	0x00000005 //0a sector  base+5, 2 byte
+//TODO:SEISMIC_LOG_GROUP_ID max 2^31 değer alacak. MSB 1 ise başlangıç sayfası olduğu anlaşılacak. Bütün işlemlerde artık ID kullanılacak. Dönüşümü yapmam lazım
 
 #define STORAGE_OPCODE_WRITE_BUFFER1_WITHOUT_ERASE		0x02
 #define STORAGE_OPCODE_WRITE_BUFFER1_WITH_ERASE			0x82
@@ -51,12 +52,14 @@ typedef struct {
 
 
 void storage_initialize();
-ErrorStatus storage_write_acceleration_page(uint8_t * buffer);
+ErrorStatus storage_write_acceleration_page(uint8_t * buffer,uint8_t is_first_page);
 uint8_t storage_is_device_ready();
 void storage_format_flash_chip();
 uint32_t storage_get_next_page_address(uint32_t page_address);
 void storage_use_256_byte_page();
 static uint32_t  storage_get_next_page();
+void storage_enter_deep_sleep_mode();
+void storage_resume_deep_sleep_mode();
 static void storage_increase_next_page_value(uint32_t page_address);
 static void storage_set_page_metadata(uint32_t page_address,uint32_t time_epoch,uint8_t temp_H,uint8_t temp_L);
 void storage_write_bytes(uint32_t  flash_chip_address,uint8_t * buffer,uint16_t length);
@@ -66,6 +69,8 @@ void storage_get_page_metadata_by_page_address(uint32_t page_address,uint8_t * b
 static void storage_write_next_page_to_flash(uint32_t next_page_addr);
 static uint32_t storage_get_next_page_from_flash();
 void storage_wait_until_flash_available();
+void storage_delay();
+void storage_mini_delay();
 
 
 #endif /* SERVICES_FLASH_FLASH_SERVICE_H_ */

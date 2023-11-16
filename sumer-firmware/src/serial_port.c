@@ -28,14 +28,14 @@
 #include "SDK_EVAL_Config.h"
 #include "OTA_btl.h"
 #include "command_processor.h"
+#include "flash_service.h"
 
 /* External variables --------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Private defines -----------------------------------------------------------*/
 
-
-#define SERVER_ADDRESS 0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02
-#define LOCAL_NAME  'S','u','m','e','r','A','8','2','E'
+#define SERVER_ADDRESS 0xAA, 0x34, 0x34, 0x08, 0xAB, 0x0F
+#define LOCAL_NAME  'S','3','4','0','8','A','B','0','F','R'
 #define MANUF_DATA_SIZE (27)
 
 
@@ -81,7 +81,7 @@ uint8_t BluetoothDeviceInit(void)
 
 
 	uint8_t role = GAP_PERIPHERAL_ROLE;
-	uint8_t bdaddr[] = { 0xaa, 0x00, 0x00, 0xE1, 0x80, 0x02 };
+	uint8_t bdaddr[] = {SERVER_ADDRESS };
 
 	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
 	CONFIG_DATA_PUBADDR_LEN, bdaddr);
@@ -130,7 +130,7 @@ uint8_t BluetoothDeviceInit(void)
 		debug(MESSAGE_LEVEL_VERBOSE, DEBUG_GATT_UPDATE_CHAR_SUCCESS);
 	}*/
 
-
+	hci_le_set_scan_response_data(0,NULL);
 
   ret = Add_SerialPort_Service();
 	if (ret != BLE_STATUS_SUCCESS) {
@@ -181,6 +181,14 @@ void flush_ble_serial_buffer(void)
 	cmd_buff_start=0;
 	//NVIC_EnableIRQ(UART_IRQn);
 
+}
+
+void start_advertising(void){
+
+	uint16_t interval_in_ms= 10000;
+	uint8_t local_name[] = { AD_TYPE_COMPLETE_LOCAL_NAME, LOCAL_NAME };
+	aci_gap_set_discoverable(ADV_IND, interval_in_ms * 0.625, interval_in_ms * 0.625, PUBLIC_ADDR, NO_WHITE_LIST_USE,
+	                                 sizeof(local_name), local_name, 0, NULL, 0, 0);
 }
 
 void send_data_over_ble_serial(uint8_t* data,uint8_t length ){
@@ -261,8 +269,8 @@ void Make_Connection(void)
   hci_le_set_scan_response_data(0,NULL);
 #endif /* ST_OTA_FIRMWARE_UPGRADE_SUPPORT */
 
-  ret = aci_gap_set_discoverable(ADV_IND, 0x90, 0x90, PUBLIC_ADDR, NO_WHITE_LIST_USE,
-                                 sizeof(local_name), local_name, 0, NULL, 0, 0);
+  start_advertising();
+
   if(ret != BLE_STATUS_SUCCESS)
   {
     //printf ("Error in aci_gap_set_discoverable(): 0x%02x\r\n", ret);
@@ -305,7 +313,7 @@ void hci_le_connection_complete_event(uint8_t Status,
 
   APP_FLAG_SET(CONNECTED);
 
-
+  storage_resume_deep_sleep_mode();
 
 #if REQUEST_CONN_PARAM_UPDATE
   APP_FLAG_CLEAR(L2CAP_PARAM_UPD_SENT);
@@ -334,6 +342,9 @@ void hci_disconnection_complete_event(uint8_t Status,
   APP_FLAG_CLEAR(END_READ_TX_CHAR_HANDLE);
   APP_FLAG_CLEAR(START_READ_RX_CHAR_HANDLE);
   APP_FLAG_CLEAR(END_READ_RX_CHAR_HANDLE);
+  state_manager_commit_to_flash();
+  storage_enter_deep_sleep_mode();
+  start_advertising();
 
 #if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
   OTA_terminate_connection();

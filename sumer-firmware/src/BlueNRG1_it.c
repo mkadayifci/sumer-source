@@ -161,7 +161,6 @@ void OnWatermarkInterrupt(void){
 		uint8_t fifo_samples_H=accelerometer_spi_read_single(ADXL362_REG_FIFO_H);
 		uint16_t fif_samples_count=(uint16_t)fifo_samples_H << 8 | fifo_samples_L;
 
-
 		if(fif_samples_count>=256){
 			scribe_write_seismic_activity_page();
 		}

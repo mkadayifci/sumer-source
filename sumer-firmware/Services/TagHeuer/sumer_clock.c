@@ -21,10 +21,6 @@ void sumer_clock_set_time(SumerDateTime time_to_set)
 
 SumerDateTime sumer_clock_read_time()
 {
-
-
-
-
 	SumerDateTime ret;
 	ret.year= sumer_clock_read_single(RTCCONTROL_REGISTER);
 	ret.year= sumer_clock_read_single(RTCYEAR_REGISTER);

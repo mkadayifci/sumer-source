@@ -12,14 +12,17 @@
 #include "flash_service.h"
 #include "local_settings.h"
 #include "BlueNRG1_gpio.h"
+#include "state_manager.h"
 
 static long scribe_start_time=0;
 static long cooldown_start_time=0;
-
+static uint8_t waiting_for_start_page=0;
 void scribe_start(void)
 {
-	scribe_start_time=sumer_clock_get_epoch();
+	APP_FLAG_CLEAR(WAITING_FOR_ACTIVITY);
+	storage_resume_deep_sleep_mode();
 	scribe_set_scribe_mode();
+	waiting_for_start_page=1;
 	accelerometer_set_fifo_to_stream_mode();
 }
 
@@ -29,6 +32,7 @@ void scribe_stop(void)
 	accelerometer_clear_fifo_stream_mode();
 	APP_FLAG_CLEAR(SCRIBE_MODE);
 	APP_FLAG_SET(SCRIBE_COOLDOWN);
+	storage_enter_deep_sleep_mode();
 }
 
 uint8_t scribe_is_log_window_over(void)
@@ -62,29 +66,25 @@ void scribe_tick(void)
 		if(!scribe_is_in_cooldown_period())
 		{
 			APP_FLAG_CLEAR(SCRIBE_COOLDOWN);
-			if(local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED)==1)
+			if(state_manager_is_scribe_mode_enabled()==1)
 			{
+				APP_FLAG_SET(WAITING_FOR_ACTIVITY);
 				accelerometer_sleep_and_enable_interrupt();
 			}
 		}
-
 	}
-
 }
 
-
-
 uint8_t scribe_accelerometer_FIFO_buffer[256];
-
 void scribe_write_seismic_activity_page(void)
 {
-	accelerometer_read_FIFO(&scribe_accelerometer_FIFO_buffer, 256);
-	storage_write_acceleration_page(&scribe_accelerometer_FIFO_buffer);
-
+	accelerometer_read_FIFO((uint8_t * )&scribe_accelerometer_FIFO_buffer, 256);
+	storage_write_acceleration_page((uint8_t * )&scribe_accelerometer_FIFO_buffer,waiting_for_start_page);
+	waiting_for_start_page=0;
 }
 
 void scribe_set_scribe_mode(void)
 {
+	scribe_start_time=sumer_clock_get_epoch();
 	APP_FLAG_SET(SCRIBE_MODE);
-	//SET Scribe Start Time
 }
