@@ -25,6 +25,9 @@ void command_processor_delay(){
 	for (uint32_t i = 0; i < 20000; i++)__NOP();
 }
 
+void command_processor_seismic_demo_delay(){
+	for (uint32_t i = 0; i < 80000; i++)__NOP();
+}
 void command_processor_add_to_buffer(uint8_t *receiveBuffer, uint8_t length)
 {
 	for(int i = 0 ;i<length;i++)
@@ -100,9 +103,6 @@ void command_processor_process_command(uint8_t *receiveBuffer, uint8_t length)
 			break;
 		case COMMAND_GET_TIME:
 			command_processor_get_time_response();
-			break;
-		case COMMAND_SCRIBE_GET_WRITTEN_PAGE_COUNT:
-			command_processor_send_total_written_page_count();
 			break;
 		case COMMAND_SWITCH_TO_SEISMIC_DEMO_MODE:
 			command_processor_send_seismic_demo_response();
@@ -180,15 +180,23 @@ void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer)
 
 		active_page_log_group_id =  (uint16_t)metadata_buffer[4] |
 									(uint16_t)metadata_buffer[5] << 8;
-		active_page_log_group_id= active_page_log_group_id & ~(1<<15);
+		active_page_log_group_id = active_page_log_group_id & ~(1<<15);
 
 		active_page_temprature = 	(int16_t)metadata_buffer[7] |
 									(int16_t)metadata_buffer[6] << 8 ;
+
+		if(active_page_epoch==0x00 || active_page_epoch==0xFFFFFFFF)
+		{
+			break;
+		}
 
 		if (previous_page_log_group_id != 0 && (previous_page_log_group_id != active_page_log_group_id)) //Page belongs to different log
 		{
 			break;
 		}
+
+
+
 		storage_read_bytes(active_page_address, (uint8_t * )&page_content_buffer, 256);
 //		uint32_t crc32_value = crc_service_calculate_crc32c((uint8_t * )&page_content_buffer,256);
 
@@ -271,10 +279,10 @@ void command_processor_set_seismic_log_mode_response(uint8_t new_log_mode)
 {
 
 	state_manager_set_is_scribe_mode_enabled(new_log_mode);
-	if(new_log_mode && !APP_FLAG(SCRIBE_COOLDOWN)){
-		APP_FLAG_SET(WAITING_FOR_ACTIVITY);
-		accelerometer_sleep_and_enable_interrupt();
-	}
+	//if(new_log_mode && !APP_FLAG(SCRIBE_COOLDOWN)){
+	//	APP_FLAG_SET(WAITING_FOR_ACTIVITY);
+	//	accelerometer_sleep_and_enable_interrupt();
+	//}
 	command_processor_sesimic_log_mode_response();
 }
 
@@ -335,12 +343,11 @@ void command_processor_sesimic_log_mode_response(void) {
 
 void command_processor_send_seismic_demo_response(void)
 {
-	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x14);
 	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x22);
-	uint32_t start_time_epoch=sumer_clock_get_epoch();
 
-	while(sumer_clock_get_epoch() - start_time_epoch <20 )
-	{
+
+	for(int i = 0;i<1500;i++){
 		uint8_t x_data_H=accelerometer_spi_read_single(ADXL362_REG_XDATA_H);
 		uint8_t x_data_L=accelerometer_spi_read_single(ADXL362_REG_XDATA_L);
 		uint8_t y_data_H=accelerometer_spi_read_single(ADXL362_REG_YDATA_H);
@@ -362,7 +369,7 @@ void command_processor_send_seismic_demo_response(void)
 				z_data_L
 		};
 		send_data_over_ble_serial_and_force((uint8_t * )&response, sizeof(response));
-		command_processor_delay();
+		command_processor_seismic_demo_delay();
 	}
 }
 
@@ -458,10 +465,11 @@ void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_me
 
 		if (is_first_page_of_seiecmic_log_group) //New Seismic Log Page Founded
 		{
+			retIndex++;
 			if (page_epoch != UINT32_MAX && page_epoch != 0) {
 				seismic_log_metadata_array[retIndex].log_epoch = page_epoch;
 				seismic_log_metadata_array[retIndex].page_base_address = (i * 256) + STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG;
-				seismic_log_metadata_array[retIndex].log_index=retIndex+1;
+				seismic_log_metadata_array[retIndex].log_index=retIndex;
 				seismic_log_metadata_array[retIndex].seismic_log_group_id= seismic_log_group_id;
 
 			}
@@ -471,7 +479,7 @@ void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_me
 				pageCounter = 0;
 			}
 
-			retIndex++;
+
 		}
 		pageCounter++;
 
@@ -502,19 +510,6 @@ void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_me
 
 }
 
-void command_processor_send_total_written_page_count(void)
-{
-	uint8_t response[] = {
-							COMMAND_START_SEQ_1,
-							COMMAND_START_SEQ_2,
-							COMMAND_START_SEQ_3,
-							3,
-							COMMAND_SCRIBE_GET_WRITTEN_PAGE_COUNT,
-							0x24, //H
-							0x01 //L
-						};
-	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
-}
 
 void command_processor_set_time(uint8_t year,uint8_t month,uint8_t day,uint8_t hour,uint8_t minute,uint8_t second)
 {

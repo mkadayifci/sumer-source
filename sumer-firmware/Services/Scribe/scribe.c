@@ -75,6 +75,7 @@ void scribe_tick(void)
 	}
 }
 
+
 uint8_t scribe_accelerometer_FIFO_buffer[256];
 void scribe_write_seismic_activity_page(void)
 {

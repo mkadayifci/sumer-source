@@ -53,9 +53,9 @@ void accelerometer_sleep_and_enable_interrupt()
 	//Sets ACT(4) bit HIGH to enable activity interrupt
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,0x10);
 	//Activity Threshold Limit in mg
-	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_L,0x32);
+	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_L,0x28);
 	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_H,0x00);
-	accelerometer_spi_write_single(ADXL362_REG_TIME_ACT,0x01);
+	accelerometer_spi_write_single(ADXL362_REG_TIME_ACT,0x02);
 	//only referenced activity mode active
 	accelerometer_spi_write_single(ADXL362_REG_ACT_INACT_CTL,0x03);
 	//400Hz and Halved Bandwidth

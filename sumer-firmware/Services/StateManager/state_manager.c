@@ -6,8 +6,8 @@
 #define STATE_MANAGER_FIELD_STATUS_SYCNED 				0x03
 
 
-uint8_t is_seismic_log_enabled;
-uint8_t state_of_is_sesimic_log_enabled=STATE_MANAGER_FIELD_STATUS_NOT_INITIALIZED;
+uint8_t volatile is_seismic_log_enabled;
+uint8_t volatile state_of_is_sesimic_log_enabled=STATE_MANAGER_FIELD_STATUS_NOT_INITIALIZED;
 
 uint8_t state_manager_is_scribe_mode_enabled(void)
 {
@@ -16,7 +16,6 @@ uint8_t state_manager_is_scribe_mode_enabled(void)
 void state_manager_set_is_scribe_mode_enabled(uint8_t new_value)
 {
 	is_seismic_log_enabled=new_value;
-	//local_settings_set_char_value(STORAGE_FLASH_CHIP_ADDR_IS_SEISMIC_LOG_ENABLED,new_value);
 	state_of_is_sesimic_log_enabled=STATE_MANAGER_FIELD_STATUS_WAITING_TO_COMMIT;
 }
 void state_manager_initialize(void)

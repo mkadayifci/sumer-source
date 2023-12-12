@@ -34,8 +34,8 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private defines -----------------------------------------------------------*/
 
-#define SERVER_ADDRESS 0xAA, 0x34, 0x34, 0x08, 0xAB, 0x0F
-#define LOCAL_NAME  'S','3','4','0','8','A','B','0','F','R'
+#define SERVER_ADDRESS 0xAA, 0x34, 0x34, 0x08, 0xAB, 0x0E
+#define LOCAL_NAME  'S','3','4','0','8','A','B','0','E','R'
 #define MANUF_DATA_SIZE (27)
 
 
@@ -185,9 +185,9 @@ void flush_ble_serial_buffer(void)
 
 void start_advertising(void){
 
-	uint16_t interval_in_ms= 10000;
+	uint16_t interval_in_ms= 5000;
 	uint8_t local_name[] = { AD_TYPE_COMPLETE_LOCAL_NAME, LOCAL_NAME };
-	aci_gap_set_discoverable(ADV_IND, interval_in_ms * 0.625, interval_in_ms * 0.625, PUBLIC_ADDR, NO_WHITE_LIST_USE,
+	aci_gap_set_discoverable(ADV_IND, interval_in_ms / 0.625, interval_in_ms / 0.625, PUBLIC_ADDR, NO_WHITE_LIST_USE,
 	                                 sizeof(local_name), local_name, 0, NULL, 0, 0);
 }
 
@@ -312,6 +312,8 @@ void hci_le_connection_complete_event(uint8_t Status,
   connection_handle = Connection_Handle;
 
   APP_FLAG_SET(CONNECTED);
+  accelerometer_disable_activity_interrupt();
+  APP_FLAG_CLEAR(WAITING_FOR_ACTIVITY);
 
   storage_resume_deep_sleep_mode();
 
@@ -332,19 +334,25 @@ void hci_disconnection_complete_event(uint8_t Status,
                                       uint16_t Connection_Handle,
                                       uint8_t Reason)
 {
-   APP_FLAG_CLEAR(CONNECTED);
-  /* Make the device connectable again. */
-  APP_FLAG_SET(SET_CONNECTABLE);
-  APP_FLAG_CLEAR(NOTIFICATIONS_ENABLED);
-  APP_FLAG_CLEAR(TX_BUFFER_FULL);
+	APP_FLAG_CLEAR(CONNECTED);
+	/* Make the device connectable again. */
+	APP_FLAG_SET(SET_CONNECTABLE);
+	APP_FLAG_CLEAR(NOTIFICATIONS_ENABLED);
+	APP_FLAG_CLEAR(TX_BUFFER_FULL);
 
-  APP_FLAG_CLEAR(START_READ_TX_CHAR_HANDLE);
-  APP_FLAG_CLEAR(END_READ_TX_CHAR_HANDLE);
-  APP_FLAG_CLEAR(START_READ_RX_CHAR_HANDLE);
-  APP_FLAG_CLEAR(END_READ_RX_CHAR_HANDLE);
-  state_manager_commit_to_flash();
-  storage_enter_deep_sleep_mode();
-  start_advertising();
+	APP_FLAG_CLEAR(START_READ_TX_CHAR_HANDLE);
+	APP_FLAG_CLEAR(END_READ_TX_CHAR_HANDLE);
+	APP_FLAG_CLEAR(START_READ_RX_CHAR_HANDLE);
+	APP_FLAG_CLEAR(END_READ_RX_CHAR_HANDLE);
+	state_manager_commit_to_flash();
+	if (state_manager_is_scribe_mode_enabled() == 1) {
+		APP_FLAG_SET(WAITING_FOR_ACTIVITY);
+		accelerometer_sleep_and_enable_interrupt();
+	}
+	storage_enter_deep_sleep_mode();
+	start_advertising();
+
+
 
 #if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
   OTA_terminate_connection();
