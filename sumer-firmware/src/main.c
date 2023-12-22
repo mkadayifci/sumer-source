@@ -122,6 +122,7 @@ void InitializeAllSystems(void){
 	spi_service_init(SUMER_SPI_BAUDRATE);
 	sumer_clock_init();
 	accelerometer_init();
+	storage_resume_deep_sleep_mode();
 	if(state_manager_is_scribe_mode_enabled())
 	{
 		APP_FLAG_SET(WAITING_FOR_ACTIVITY);
@@ -133,6 +134,7 @@ void InitializeAllSystems(void){
 int main(void)
 {
  	InitializeAllSystems();
+
  	while (1)
  	{
 		APP_Tick();
@@ -159,7 +161,7 @@ void hci_hardware_error_event(uint8_t Hardware_Code)
 
 SleepModes App_SleepMode_Check(SleepModes sleepMode)
 {
-	//return SLEEPMODE_RUNNING;
+	return SLEEPMODE_RUNNING;
 
 	if (APP_FLAG(SCRIBE_MODE)||APP_FLAG(CONNECTED) )
 		return SLEEPMODE_RUNNING;

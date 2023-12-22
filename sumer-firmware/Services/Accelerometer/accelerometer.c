@@ -1,6 +1,9 @@
 #include "SPI_Service.h"
 #include "Accelerometer.h"
 
+
+
+
 void accelerometer_delay()
 {
 	for (uint32_t i = 0; i < 80000; i++)__NOP();
@@ -10,12 +13,41 @@ void accelerometer_init()
 {
 	accelerometer_reset();
 	accelerometer_clear_fifo_stream_mode();
-	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x12);
-	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0);
-	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x0);
-	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,0x00);
+	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL, accelerometer_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_LOW));
+	//accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL, accelerometer_get_filter_controls(ODR_200, 0x00, RANGE_2G));
+	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL, 0x00);
+	accelerometer_spi_write_single(ADXL362_REG_INTMAP2, 0x00);
+	accelerometer_spi_write_single(ADXL362_REG_INTMAP1, 0x00);
 	accelerometer_init_external_interrupts();
 }
+
+
+uint8_t accelerometer_get_filter_controls(enum ADXL_ODR_VALUES odr,uint8_t half_bw,enum ADXL_RANGES range)
+{
+
+	adxl_filter_control_t filter_control={0};
+	filter_control.ODR = odr;
+	filter_control.EXT_SAMPLE= 0x00;
+	filter_control.HALF_BW = half_bw;
+	filter_control.RANGE = range;
+	return  ((uint8_t *)&filter_control)[0];
+
+}
+
+uint8_t accelerometer_get_power_controls(enum ADXL_MODES mode,uint8_t autosleep,uint8_t wakeup,enum ADXL_NOISE_MODES noise_mode)
+{
+
+	adxl_power_control_t power_control={0};
+	power_control.MEASURE= mode;
+	power_control.AUTOSLEEP=autosleep;
+	power_control.WAKEUP= wakeup;
+	power_control.LOW_NOISE=noise_mode;
+	power_control.EXT_CLK=0x00;
+	return ((uint8_t *)&power_control)[0];
+
+}
+
+
 
 void accelerometer_init_external_interrupts()
 {
@@ -50,34 +82,24 @@ void accelerometer_clear_interrupt_bits(void)
 void accelerometer_sleep_and_enable_interrupt()
 {
 
-	//Sets ACT(4) bit HIGH to enable activity interrupt
-	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,0x10);
-	//Activity Threshold Limit in mg
-	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_L,0x28);
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL, accelerometer_get_filter_controls(ODR_50, 0x01, RANGE_2G));
+	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL, accelerometer_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_LOW));
+	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_L,0x10);
 	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_H,0x00);
-	accelerometer_spi_write_single(ADXL362_REG_TIME_ACT,0x02);
-	//only referenced activity mode active
+	accelerometer_spi_write_single(ADXL362_REG_TIME_ACT,0x04);
 	accelerometer_spi_write_single(ADXL362_REG_ACT_INACT_CTL,0x03);
-	//400Hz and Halved Bandwidth
-	//accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
-	//100Hz and Halved Bandwidth
-	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
-
-	// Low Noise, Wakeup, Standby
-	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x1A);
+	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,INTMAP1_ONLY_ACTIVITY_INTERRUPT);
 	accelerometer_spi_read_single(ADXL362_REG_STATUS);
 	GPIO_ClearITPendingBit(GPIO_Pin_12);
 	GPIO_EXTICmd(GPIO_Pin_12, ENABLE);
 }
 
-void accelerometer_set_fifo_to_stream_mode(void)
-{
-	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0A);
-	accelerometer_spi_write_single(ADXL362_REG_FIFO_SAMPLES,0x00);
-	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x4);
-	//accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
-	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x17);
-	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x12);
+void accelerometer_set_fifo_to_stream_mode(void) {
+	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL, FIFO_CONTROL_STREAM_AND_SAMPLE_HIGH_BIT);
+	accelerometer_spi_write_single(ADXL362_REG_FIFO_SAMPLES, 0x00); // We set 9.bit to 1 in fifo_control and these 8bits to 0. At the end we set 256 to watermark interrupt
+	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,	INTMAP2_ONLY_FIFO_WATERMARK);
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL, accelerometer_get_filter_controls(ODR_400, 0x01, RANGE_2G));
+	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL, accelerometer_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00,	ADXL_NOISE_MODE_ULTRALOW));
 	accelerometer_clear_interrupt_bits();
 	GPIO_ClearITPendingBit(GPIO_Pin_5);
 	GPIO_EXTICmd(GPIO_Pin_5, ENABLE);
@@ -85,11 +107,11 @@ void accelerometer_set_fifo_to_stream_mode(void)
 
 void accelerometer_clear_fifo_stream_mode(void)
 {
-	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x0);
-	accelerometer_spi_write_single(ADXL362_REG_FIFO_SAMPLES,0xFF);
-	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x0);
-	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x11);
-	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x12);
+	accelerometer_spi_write_single(ADXL362_REG_FIFO_CTL,0x08);
+	//accelerometer_spi_write_single(ADXL362_REG_FIFO_SAMPLES,0xFF);
+	accelerometer_spi_write_single(ADXL362_REG_INTMAP2,0x00);
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL, accelerometer_get_filter_controls(ODR_25, 0x01, RANGE_2G));
+	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL, accelerometer_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_LOW));
 	accelerometer_clear_interrupt_bits();
 	GPIO_ClearITPendingBit(GPIO_Pin_5);
 	GPIO_EXTICmd(GPIO_Pin_5, DISABLE);

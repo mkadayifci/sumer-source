@@ -5,8 +5,10 @@
 #include "sumer_clock.h"
 #include "time.h"
 #include "accelerometer.h"
+#include "scribe.h"
 #define PORT
 #define MAX_SEISMIC_LOG_GROUP_ID	0x7FFF
+
 
 void storage_delay()
 {
@@ -50,19 +52,28 @@ ErrorStatus storage_write_acceleration_page(uint8_t * buffer,uint8_t is_first_pa
 							(uint8_t *)&bytes_to_send,
 							260);
 	storage_wait_until_flash_available();
-	seismic_log_group_id = storage_get_last_seismic_log_group_id_from_flash();
-	if(is_first_page)
-	{
-		seismic_log_group_id++;
-		if(seismic_log_group_id>MAX_SEISMIC_LOG_GROUP_ID)
-		{
-			seismic_log_group_id=1;
-		}
-		storage_write_last_seismic_log_group_id_to_flash(seismic_log_group_id);
-	}
+
 
 	if(ret ==SUCCESS){
+
+		seismic_log_group_id = storage_get_last_seismic_log_group_id_from_flash();
+		if(is_first_page)
+		{
+			seismic_log_group_id++;
+			if(seismic_log_group_id==0 || seismic_log_group_id>MAX_SEISMIC_LOG_GROUP_ID)
+			{
+				seismic_log_group_id=1;
+			}
+			storage_write_last_seismic_log_group_id_to_flash(seismic_log_group_id);
+
+		}
+
 		uint32_t time_epoch=sumer_clock_get_epoch();
+
+		if(scribe_is_false_positive()){
+			time_epoch+=315576000;
+		}
+
 		uint8_t temp_H=accelerometer_spi_read_single(ADXL362_REG_TEMP_H);
 		uint8_t temp_L=accelerometer_spi_read_single(ADXL362_REG_TEMP_L);
 		uint16_t seismic_log_group_id_value = seismic_log_group_id;
@@ -234,7 +245,7 @@ static void storage_write_last_seismic_log_group_id_to_flash(uint16_t last_seism
 
 static uint16_t storage_get_last_seismic_log_group_id_from_flash()
 {
-	uint8_t seismic_log_group_id_buffer[2];
+	uint8_t seismic_log_group_id_buffer[2]={0};
 	storage_read_bytes(STORAGE_FLASH_CHIP_ADDR_LAST_SEISMIC_LOG_GROUP_ID,(uint8_t * )&seismic_log_group_id_buffer,2);
 	uint16_t seismic_log_group_id = 	(uint16_t)seismic_log_group_id_buffer[0] |
 										(uint16_t)seismic_log_group_id_buffer[1] << 8 ;

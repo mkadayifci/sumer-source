@@ -42,14 +42,6 @@
 
 #define ADXL362_SPI_SPEED				8000000
 
-#define ADXL362_POWER_CTRL_STANDBY		0b00
-#define ADXL362_POWER_CTRL_MEASURE		0b10
-
-
-#define ADXL362_NOISE_NORMAL			0b00
-#define ADXL362_NOISE_LOW				0b01
-#define ADXL362_NOISE_ULTRALOW			0b10
-
 #define ADXL362_SOFT_RESET_VAL			0x52
 
 #define ADXL362_SPI_COMMAND_WRITE		0x0A
@@ -57,41 +49,58 @@
 #define ADXL362_SPI_COMMAND_FIFO_READ	0x0D
 
 
-#define ADXL362_SET						0b1
-#define ADXL362_RESET					0b0
+enum ADXL_ODR_VALUES {
+	ODR_12_5 = 0, ODR_25 = 1, ODR_50 = 2, ODR_100 = 3, ODR_200 = 4, ODR_400 = 5
+};
 
+enum ADXL_RANGES {
+	RANGE_2G = 0, RANGE_4G = 1, RANGE_8G = 2
+};
+
+enum ADXL_MODES {
+	ADXL_MODE_STANDBY = 0, ADXL_MODE_MEASURE = 2
+};
+
+enum ADXL_NOISE_MODES {
+	ADXL_NOISE_MODE_NORMAL = 0, ADXL_NOISE_MODE_LOW = 1, ADXL_NOISE_MODE_ULTRALOW = 2
+};
+
+#define INTMAP2_ONLY_FIFO_WATERMARK 					0x04
+#define INTMAP1_ONLY_ACTIVITY_INTERRUPT					0x10
+#define FIFO_CONTROL_STREAM_AND_SAMPLE_HIGH_BIT 		0x0A
 
 typedef struct
 {
+    uint8_t ODR : 3;
+    uint8_t EXT_SAMPLE : 1;
+    uint8_t HALF_BW: 1;
+    uint8_t RES: 1;
+    uint8_t RANGE: 2;
 
-	uint8_t MEASURE:2;
-	uint8_t AUTOSLEEP:1;
-	uint8_t WAKEUP:1;
-	uint8_t LOW_NOISE:2;
-	uint8_t EXT_CLK:1;
-	uint8_t RESERVED:1;
+} adxl_filter_control_t;
 
+typedef struct
+{
+    uint8_t MEASURE : 2;
+    uint8_t AUTOSLEEP : 1;
+    uint8_t WAKEUP: 1;
+    uint8_t LOW_NOISE: 2;
+    uint8_t EXT_CLK: 1;
+    uint8_t RES: 1;
 
-
-
-}  POWER_CTRL;
-
-
-
+} adxl_power_control_t;
 
 void accelerometer_init();
-
-
 void accelerometer_delay();
 void accelerometer_reset();
 void accelerometer_sleep_and_enable_interrupt();
 void accelerometer_init_external_interrupts();
 void accelerometer_set_fifo_to_stream_mode(void);
 void accelerometer_clear_fifo_stream_mode(void);
-
+uint8_t accelerometer_get_power_controls(enum ADXL_MODES mode,uint8_t autosleep,uint8_t wakeup,enum ADXL_NOISE_MODES noise_mode);
+uint8_t accelerometer_get_filter_controls(enum ADXL_ODR_VALUES odr,uint8_t half_bw,enum ADXL_RANGES range);
 void accelerometer_disable_activity_interrupt(void);
 void accelerometer_clear_interrupt_bits(void);
-
 void accelerometer_read_FIFO(uint8_t* pBuffer,uint16_t length);
 ErrorStatus accelerometer_spi_write_single(uint8_t command, uint8_t value);
 uint8_t accelerometer_spi_read_single(uint8_t command) ;
