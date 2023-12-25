@@ -1,6 +1,6 @@
 #include "SPI_Service.h"
 #include "Accelerometer.h"
-
+#include "state_manager.h"
 
 
 
@@ -81,12 +81,11 @@ void accelerometer_clear_interrupt_bits(void)
 
 void accelerometer_sleep_and_enable_interrupt()
 {
-
 	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL, accelerometer_get_filter_controls(ODR_50, 0x01, RANGE_2G));
 	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL, accelerometer_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_LOW));
-	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_L,0x10);
+	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_L,state_manager_activity_threshold_low());
 	accelerometer_spi_write_single(ADXL362_REG_THRESH_ACT_H,0x00);
-	accelerometer_spi_write_single(ADXL362_REG_TIME_ACT,0x04);
+	accelerometer_spi_write_single(ADXL362_REG_TIME_ACT,state_manager_activity_time());
 	accelerometer_spi_write_single(ADXL362_REG_ACT_INACT_CTL,0x03);
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,INTMAP1_ONLY_ACTIVITY_INTERRUPT);
 	accelerometer_spi_read_single(ADXL362_REG_STATUS);

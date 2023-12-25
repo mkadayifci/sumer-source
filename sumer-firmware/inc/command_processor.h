@@ -49,6 +49,11 @@ typedef struct {
 #define COMMAND_PAGE_CHUNK						0x54
 #define COMMAND_GET_DEVICE_SERIAL_NUMBER		0x55
 #define COMMAND_FORMAT_FLASH					0x56
+#define COMMAND_SET_SEISMIC_ACTIVITY_THRESHOLD	0x58
+#define COMMAND_GET_SEISMIC_ACTIVITY_THRESHOLD	0x59
+#define COMMAND_SET_SEISMIC_TIME_ACTIVITY		0x5A
+#define COMMAND_GET_SEISMIC_TIME_ACTIVITY		0x5B
+#define COMMAND_ERASE_SEISMIC_LOG_SECTORS		0x5C
 
 
 #define FIRMWARE_VERSION_MAJOR	 	0x01
@@ -68,6 +73,12 @@ void command_processor_send_total_written_page_count(void);
 void command_processor_set_time(uint8_t year,uint8_t month,uint8_t day,uint8_t hour,uint8_t minute,uint8_t second);
 void command_processor_get_time_response();
 static void command_processor_shrink_buffer(uint8_t position_to_move);
+void command_processor_sesimic_activity_threshold_response(void);
+void command_processor_sesimic_time_threshold_response(void);
+void command_processor_set_seismic_time_threshold_response(uint8_t time_threshold_value);
+void command_processor_set_seismic_activity_threshold_response(uint8_t threshold_value);
+
+
 
 void command_processor_parse_buffer();
 void command_processor_add_to_buffer(uint8_t *receiveBuffer, uint8_t length);

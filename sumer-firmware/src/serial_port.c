@@ -29,13 +29,15 @@
 #include "OTA_btl.h"
 #include "command_processor.h"
 #include "flash_service.h"
+#include "state_manager.h"
+#include "accelerometer.h"
 
 /* External variables --------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Private defines -----------------------------------------------------------*/
 
-#define SERVER_ADDRESS 0xAA, 0x34, 0x34, 0x08, 0xAB, 0x0E
-#define LOCAL_NAME  'S','3','4','0','8','A','B','0','E','R'
+#define SERVER_ADDRESS 0xAA, 0x34, 0x34, 0x08, 0xAB, 0x0D
+#define LOCAL_NAME  'S','3','4','0','8','A','B','0','D','R'
 #define MANUF_DATA_SIZE (27)
 
 

@@ -113,6 +113,18 @@ void command_processor_process_command(uint8_t *receiveBuffer, uint8_t length)
 		case COMMAND_GET_SEISMIC_LOG_MODE:
 			command_processor_sesimic_log_mode_response();
 			break;
+		case COMMAND_SET_SEISMIC_ACTIVITY_THRESHOLD:
+			command_processor_set_seismic_activity_threshold_response(receiveBuffer[1]);
+			break;
+		case COMMAND_GET_SEISMIC_ACTIVITY_THRESHOLD:
+			command_processor_sesimic_activity_threshold_response();
+			break;
+		case COMMAND_SET_SEISMIC_TIME_ACTIVITY:
+			command_processor_set_seismic_time_threshold_response(receiveBuffer[1]);
+			break;
+		case COMMAND_GET_SEISMIC_TIME_ACTIVITY:
+			command_processor_sesimic_time_threshold_response();
+			break;
 		case COMMAND_GET_SEISMIC_LOG_DETAIL:
 			command_processor_sesimic_log_detail_response(receiveBuffer);
 			break;
@@ -122,6 +134,10 @@ void command_processor_process_command(uint8_t *receiveBuffer, uint8_t length)
 		case COMMAND_FORMAT_FLASH:
 			command_processor_format_flash_response();
 			break;
+		case COMMAND_ERASE_SEISMIC_LOG_SECTORS:
+			command_processor_format_erase_seismic_logs_response();
+			break;
+
 	}
 }
 
@@ -284,8 +300,56 @@ void command_processor_set_seismic_log_mode_response(uint8_t new_log_mode)
 	//	accelerometer_sleep_and_enable_interrupt();
 	//}
 	command_processor_sesimic_log_mode_response();
+	state_manager_commit_to_flash();
 }
 
+
+
+void command_processor_set_seismic_activity_threshold_response(uint8_t threshold_value)
+{
+	state_manager_set_activity_threshold_low(threshold_value);
+	command_processor_sesimic_activity_threshold_response();
+	state_manager_commit_to_flash();
+}
+
+void command_processor_set_seismic_time_threshold_response(uint8_t time_threshold_value)
+{
+	state_manager_set_activity_time(time_threshold_value);
+	command_processor_sesimic_activity_threshold_response();
+	state_manager_commit_to_flash();
+}
+
+void command_processor_sesimic_time_threshold_response(void) {
+
+	uint8_t activity_time= state_manager_activity_time();
+	uint8_t response[] = {
+			COMMAND_START_SEQ_1,
+			COMMAND_START_SEQ_2,
+			COMMAND_START_SEQ_3,
+			2,
+			COMMAND_GET_SEISMIC_TIME_ACTIVITY,
+			activity_time
+			};
+	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
+}
+
+void command_processor_sesimic_activity_threshold_response(void) {
+
+
+	uint8_t activity_threshold= state_manager_activity_threshold_low();
+
+	uint8_t response[] = {
+			COMMAND_START_SEQ_1,
+			COMMAND_START_SEQ_2,
+			COMMAND_START_SEQ_3,
+			2,
+			COMMAND_GET_SEISMIC_ACTIVITY_THRESHOLD,
+			activity_threshold
+			};
+
+	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
+
+}
 
 
 void command_processor_get_device_serial_number_response(void) {
@@ -321,6 +385,31 @@ void command_processor_format_flash_response(void)
 
 	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
 }
+
+
+void command_processor_format_erase_seismic_logs_response(void)
+{
+
+	for(int i =3 ;i<=31;i++)
+	{
+		storage_erase_sector(i);
+	}
+	storage_erase_sector(STORAGE_SECTOR_0B);
+
+	uint8_t response[] = {
+				COMMAND_START_SEQ_1,
+				COMMAND_START_SEQ_2,
+				COMMAND_START_SEQ_3,
+				2,
+				COMMAND_ERASE_SEISMIC_LOG_SECTORS,
+				1
+				};
+
+	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
+}
+
+
+
 
 void command_processor_sesimic_log_mode_response(void) {
 

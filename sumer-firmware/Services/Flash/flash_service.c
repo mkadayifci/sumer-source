@@ -253,6 +253,31 @@ static uint16_t storage_get_last_seismic_log_group_id_from_flash()
 }
 
 
+void storage_erase_sector(uint8_t sector)
+{
+	if(sector<=0x1F ) // 1-31
+	{
+		spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
+				0x7C,
+				sector<<2,
+				0x00,
+				0x00,
+			}, 4);
+
+	}
+	else if(sector == STORAGE_SECTOR_0B)
+	{
+		spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
+					0x7C,
+					0x80,
+					0x0F,
+					0xFF,
+				}, 4);
+	}
+	storage_wait_until_flash_available();
+}
+
+
 uint32_t storage_get_next_page_address(uint32_t page_address)
 {
 	uint32_t increased_next_page_addr=page_address+0x100; //Last byte is in page position. So wee add 255+1 to increase page addr
