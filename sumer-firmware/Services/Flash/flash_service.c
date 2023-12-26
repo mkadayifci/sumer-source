@@ -72,17 +72,22 @@ ErrorStatus storage_write_acceleration_page(uint8_t * buffer,uint8_t is_first_pa
 
 		if(scribe_is_false_positive()){
 			time_epoch+=315576000;
+			scribe_stop_without_cooldown();
+		}
+		else
+		{
+			uint8_t temp_H=accelerometer_spi_read_single(ADXL362_REG_TEMP_H);
+			uint8_t temp_L=accelerometer_spi_read_single(ADXL362_REG_TEMP_L);
+			uint16_t seismic_log_group_id_value = seismic_log_group_id;
+			if(is_first_page)
+			{
+				seismic_log_group_id_value |= (uint16_t)(1 <<15);
+			}
+			storage_set_page_metadata(page_address,time_epoch,seismic_log_group_id_value,temp_H,temp_L);
+			storage_increase_next_page_value(page_address);
 		}
 
-		uint8_t temp_H=accelerometer_spi_read_single(ADXL362_REG_TEMP_H);
-		uint8_t temp_L=accelerometer_spi_read_single(ADXL362_REG_TEMP_L);
-		uint16_t seismic_log_group_id_value = seismic_log_group_id;
-		if(is_first_page)
-		{
-			seismic_log_group_id_value |= (uint16_t)(1 <<15);
-		}
-		storage_set_page_metadata(page_address,time_epoch,seismic_log_group_id_value,temp_H,temp_L);
-		storage_increase_next_page_value(page_address);
+
 	}
 	return ret;
 }
