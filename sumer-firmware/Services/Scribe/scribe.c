@@ -36,6 +36,12 @@ void scribe_stop(void)
 	APP_FLAG_SET(SCRIBE_COOLDOWN);
 	storage_enter_deep_sleep_mode();
 }
+void scribe_stop_without_cooldown(void)
+{
+	scribe_stop();
+	cooldown_start_time-=SCRIBE_COOLDOWN_PERIOD_IN_SEC;
+}
+
 
 uint8_t scribe_is_log_window_over(void)
 {
@@ -80,7 +86,6 @@ void scribe_tick(void)
 		}
 	}
 }
-
 
 uint8_t scribe_accelerometer_FIFO_buffer[256];
 void scribe_write_seismic_activity_page(void)

@@ -117,13 +117,12 @@ void APP_Tick(void)
 void InitializeAllSystems(void){
 	SystemInit();
 	Clock_Init();
-	Radio_Init();
-	//SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_PKA, DISABLE);
 	spi_service_init(SUMER_SPI_BAUDRATE);
 	sumer_clock_init();
 	accelerometer_init();
 	storage_resume_deep_sleep_mode();
 	state_manager_initialize();
+	Radio_Init();
 	if(state_manager_is_scribe_mode_enabled())
 	{
 		APP_FLAG_SET(WAITING_FOR_ACTIVITY);

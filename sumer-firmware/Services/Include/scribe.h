@@ -22,6 +22,7 @@ uint8_t scribe_is_in_scribe_mode(void) ;
 void scribe_write_seismic_activity_page(void);
 uint8_t scribe_is_in_cooldown_period(void);
 uint8_t scribe_is_log_window_over(void);
+void scribe_stop_without_cooldown(void);
 void scribe_tick(void);
 uint8_t scribe_apply_false_positive_filter(uint8_t * pBuffer, uint16_t length);
 double scribe_calculate_standart_deviation(const int16_t pData[],uint16_t start , uint16_t length);

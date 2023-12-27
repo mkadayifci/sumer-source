@@ -16,3 +16,5 @@ void local_settings_set_char_value(uint16_t flash_chip_address,uint8_t value);
 
 
 #endif /* SERVICES_INCLUDE_LOCAL_SETTINGS_H_ */
+
+

@@ -36,8 +36,8 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private defines -----------------------------------------------------------*/
 
-#define SERVER_ADDRESS 0xAA, 0x34, 0x34, 0x08, 0xAB, 0x0D
-#define LOCAL_NAME  'S','3','4','0','8','A','B','0','D','R'
+//#define SERVER_ADDRESS 0xAA, 0x34, 0x34, 0x08, 0xAB, 0x0D
+//#define LOCAL_NAME  'S','3','4','0','8','A','B','0','D','R'
 #define MANUF_DATA_SIZE (27)
 
 
@@ -83,10 +83,9 @@ uint8_t BluetoothDeviceInit(void)
 
 
 	uint8_t role = GAP_PERIPHERAL_ROLE;
-	uint8_t bdaddr[] = {SERVER_ADDRESS };
+	uint8_t * bdaddr = state_manager_server_serial_number();
 
-	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,
-	CONFIG_DATA_PUBADDR_LEN, bdaddr);
+	ret = aci_hal_write_config_data(CONFIG_DATA_PUBADDR_OFFSET,	CONFIG_DATA_PUBADDR_LEN,bdaddr);
 	if (ret != BLE_STATUS_SUCCESS) {
 		debug_param(MESSAGE_LEVEL_ERROR,
 				DEBUG_CONFIGURATION_INITIALIZATION_CATEGORY,
@@ -188,9 +187,9 @@ void flush_ble_serial_buffer(void)
 void start_advertising(void){
 
 	uint16_t interval_in_ms= 5000;
-	uint8_t local_name[] = { AD_TYPE_COMPLETE_LOCAL_NAME, LOCAL_NAME };
+	uint8_t * local_name = state_manager_server_local_name();
 	aci_gap_set_discoverable(ADV_IND, interval_in_ms / 0.625, interval_in_ms / 0.625, PUBLIC_ADDR, NO_WHITE_LIST_USE,
-	                                 sizeof(local_name), local_name, 0, NULL, 0, 0);
+	                                11, local_name, 0, NULL, 0, 0);
 }
 
 void send_data_over_ble_serial(uint8_t* data,uint8_t length ){
@@ -231,39 +230,53 @@ void Make_Connection(void)
   tBleStatus ret;
 
 
-
   /* NOTE: Updated original Server advertising data in order to be also recognized by ìBLE Sensorî app Client */
 
-  tBDAddr bdaddr = {SERVER_ADDRESS};
-
-  uint8_t manuf_data[MANUF_DATA_SIZE] = {
-    2,                      /* Length of AD type Transmission Power */
-    0x0A, 0x00,             /* Transmission Power = 0 dBm */
-    9,                      /* Length of AD type Complete Local Name */
-    0x09,                   /* AD type Complete Local Name */
-    LOCAL_NAME,             /* Local Name */
-    13,                     /* Length of AD type Manufacturer info */
-    0xFF,                   /* AD type Manufacturer info */
-    0x01,                   /* Protocol version */
-    0x05,		            /* Device ID: 0x05 */
-    0x00,                   /* Feature Mask byte#1 */
-    0x00,                   /* Feature Mask byte#2 */
-    0x00,                   /* Feature Mask byte#3 */
-    0x00,                   /* Feature Mask byte#4 */
-    0x00,                   /* BLE MAC start */
-    0x00,
-    0x00,
-    0x00,
-    0x00,
-    0x00                    /* BLE MAC stop */
-  };
-
-
-  for (int var = 0; var < 6; ++var) {
-    manuf_data[MANUF_DATA_SIZE -1  - var] = bdaddr[var];
-  }
-
-  uint8_t local_name[] = { AD_TYPE_COMPLETE_LOCAL_NAME, LOCAL_NAME };
+//
+//  uint8_t * bdaddr = state_manager_server_serial_number();
+//
+//  uint8_t manuf_data[MANUF_DATA_SIZE] = {
+//    2,                      /* Length of AD type Transmission Power */
+//    0x0A, 0x00,             /* Transmission Power = 0 dBm */
+//    9,                      /* Length of AD type Complete Local Name */
+//    0x09,                   /* AD type Complete Local Name */
+//    0x00,/* Local Start */
+//    0x00,
+//    0x00,
+//    0x00,
+//    0x00,
+//    0x00,
+//    0x00,
+//    0x00,
+//    0x00,
+//    0x00,/* Local End */
+//    13,                     /* Length of AD type Manufacturer info */
+//    0xFF,                   /* AD type Manufacturer info */
+//    0x01,                   /* Protocol version */
+//    0x05,		            /* Device ID: 0x05 */
+//    0x00,                   /* Feature Mask byte#1 */
+//    0x00,                   /* Feature Mask byte#2 */
+//    0x00,                   /* Feature Mask byte#3 */
+//    0x00,                   /* Feature Mask byte#4 */
+//    0x00,                   /* BLE MAC start */
+//    0x00,
+//    0x00,
+//    0x00,
+//    0x00,
+//    0x00                    /* BLE MAC stop */
+//  };
+//
+//
+//  for (int var = 0; var < 6; ++var) {
+//    manuf_data[MANUF_DATA_SIZE -1  - var] = bdaddr[var];
+//  }
+//  uint8_t * local_name=state_manager_server_local_name();
+//  for (int var = 0; var < 10; ++var)
+//  {
+//	  manuf_data[ 5+  var] =  local_name[var];
+//
+//  }
+  //uint8_t local_name[] = { AD_TYPE_COMPLETE_LOCAL_NAME, state_manager_server_local_name() };
 
 #if ST_OTA_FIRMWARE_UPGRADE_SUPPORT
   hci_le_set_scan_response_data(18,BTLServiceUUID4Scan);

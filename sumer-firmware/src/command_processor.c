@@ -131,11 +131,17 @@ void command_processor_process_command(uint8_t *receiveBuffer, uint8_t length)
 		case COMMAND_GET_DEVICE_SERIAL_NUMBER:
 			command_processor_get_device_serial_number_response();
 			break;
+		case COMMAND_SET_DEVICE_SERIAL_NUMBER:
+			command_processor_set_device_serial_number(receiveBuffer);
+			break;
 		case COMMAND_FORMAT_FLASH:
 			command_processor_format_flash_response();
 			break;
 		case COMMAND_ERASE_SEISMIC_LOG_SECTORS:
 			command_processor_format_erase_seismic_logs_response();
+			break;
+		case COMMAND_RESET_DEVICE:
+			command_processor_reset_device();
 			break;
 
 	}
@@ -151,6 +157,12 @@ typedef struct
 	uint32_t page_epoch;
 } page_transfer_metadata_t;
 
+
+
+void command_processor_reset_device(void)
+{
+	NVIC_SystemReset();
+}
 
 
 #define LOG_PAGE_TRANSFER_CHUNK_SIZE 0x08
@@ -352,17 +364,30 @@ void command_processor_sesimic_activity_threshold_response(void) {
 }
 
 
+
+void command_processor_set_device_serial_number(uint8_t * receiveBuffer){
+
+	for(uint8_t i =0;i<6;i++)
+	{
+		local_settings_set_char_value(STORAGE_FLASH_CHIP_ADDR_SERIAL_NUMBER + i,receiveBuffer[i+1]);
+	}
+	command_processor_get_device_serial_number_response();
+}
+
 void command_processor_get_device_serial_number_response(void) {
+
 	uint8_t response[] = {
 			COMMAND_START_SEQ_1,
 			COMMAND_START_SEQ_2,
 			COMMAND_START_SEQ_3,
-			5,
+			7,
 			COMMAND_GET_DEVICE_SERIAL_NUMBER,
-			0x34,//Serial Number Byte1 H
-			0x08,
-			0xAB,
-			0x0F,//Serial Number Byte4 L
+			local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_SERIAL_NUMBER),
+			local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_SERIAL_NUMBER+1),
+			local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_SERIAL_NUMBER+2),
+			local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_SERIAL_NUMBER+3),
+			local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_SERIAL_NUMBER+4),
+			local_settings_get_char_value(STORAGE_FLASH_CHIP_ADDR_SERIAL_NUMBER+5)
 			};
 
 	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
