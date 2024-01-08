@@ -18,6 +18,7 @@
 #include "crc_service.h"
 #include "state_manager.h"
 
+
 uint8_t command_buffer[COMMAND_BUFFER_SIZE];
 uint8_t buffer_position=0;
 
@@ -429,7 +430,7 @@ void command_processor_format_erase_seismic_logs_response(void)
 				COMMAND_ERASE_SEISMIC_LOG_SECTORS,
 				1
 				};
-
+	storage_write_next_page_to_flash(STORAGE_ADDR_START_PAGE_OF_ACCELERATION_LOG);
 	send_data_over_ble_serial((uint8_t * )&response, sizeof(response));
 }
 
@@ -457,9 +458,9 @@ void command_processor_sesimic_log_mode_response(void) {
 
 void command_processor_send_seismic_demo_response(void)
 {
-	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL,0x14);
-	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL,0x22);
 
+	accelerometer_spi_write_single(ADXL362_REG_FILTER_CTL, accelerometer_get_filter_controls(ODR_100, 0x01, RANGE_2G));
+	accelerometer_spi_write_single(ADXL362_REG_POWER_CTL, accelerometer_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_ULTRALOW));
 
 	for(int i = 0;i<1500;i++){
 		uint8_t x_data_H=accelerometer_spi_read_single(ADXL362_REG_XDATA_H);

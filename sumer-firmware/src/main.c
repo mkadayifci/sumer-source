@@ -137,6 +137,15 @@ int main(void)
 
  	while (1)
  	{
+ 		if(APP_FLAG(SCRIBE_MODE)|| APP_FLAG(SCRIBE_COOLDOWN)){
+ 			GPIO_SetBits(GPIO_Pin_6);
+ 		}
+ 		else{
+ 			GPIO_ResetBits(GPIO_Pin_6);
+ 		}
+
+
+
 		APP_Tick();
  		BTLE_StackTick();
 		BlueNRG_Sleep(SLEEPMODE_NOTIMER, WAKEUP_IO12, (WAKEUP_IOx_HIGH << WAKEUP_IO12_SHIFT_MASK) );

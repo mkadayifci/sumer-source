@@ -1,6 +1,7 @@
 #include "SPI_Service.h"
 #include "Accelerometer.h"
 #include "state_manager.h"
+#include "app_state.h"
 
 
 
@@ -72,6 +73,7 @@ void accelerometer_init_external_interrupts()
 void accelerometer_disable_activity_interrupt(void)
 {
 	accelerometer_spi_write_single(ADXL362_REG_INTMAP1,0x00);
+	APP_FLAG_CLEAR(WAITING_FOR_ACTIVITY);
 }
 
 void accelerometer_clear_interrupt_bits(void)
@@ -91,6 +93,7 @@ void accelerometer_sleep_and_enable_interrupt()
 	accelerometer_spi_read_single(ADXL362_REG_STATUS);
 	GPIO_ClearITPendingBit(GPIO_Pin_12);
 	GPIO_EXTICmd(GPIO_Pin_12, ENABLE);
+	APP_FLAG_SET(WAITING_FOR_ACTIVITY);
 }
 
 void accelerometer_set_fifo_to_stream_mode(void) {

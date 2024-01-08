@@ -108,7 +108,7 @@ void storage_write_bytes(uint32_t  flash_chip_address,uint8_t * buffer,uint16_t 
 void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,uint16_t length);
 void storage_get_page_metadata(uint16_t page_index,uint8_t * buffer);
 void storage_get_page_metadata_by_page_address(uint32_t page_address,uint8_t * buffer);
-static void storage_write_next_page_to_flash(uint32_t next_page_addr);
+void storage_write_next_page_to_flash(uint32_t next_page_addr);
 static void storage_write_last_seismic_log_group_id_to_flash(uint16_t last_seismic_log_group_id);
 static uint32_t storage_get_next_page_from_flash();
 static uint16_t storage_get_last_seismic_log_group_id_from_flash();

@@ -56,26 +56,28 @@ ErrorStatus storage_write_acceleration_page(uint8_t * buffer,uint8_t is_first_pa
 
 	if(ret ==SUCCESS){
 
-		seismic_log_group_id = storage_get_last_seismic_log_group_id_from_flash();
-		if(is_first_page)
-		{
-			seismic_log_group_id++;
-			if(seismic_log_group_id==0 || seismic_log_group_id>MAX_SEISMIC_LOG_GROUP_ID)
-			{
-				seismic_log_group_id=1;
-			}
-			storage_write_last_seismic_log_group_id_to_flash(seismic_log_group_id);
 
-		}
 
 		uint32_t time_epoch=sumer_clock_get_epoch();
 
 		if(scribe_is_false_positive()){
-			time_epoch+=315576000;
+			//time_epoch+=315576000;
 			scribe_stop_without_cooldown();
 		}
 		else
 		{
+			seismic_log_group_id = storage_get_last_seismic_log_group_id_from_flash();
+			if(is_first_page)
+			{
+				seismic_log_group_id++;
+				if(seismic_log_group_id==0 || seismic_log_group_id>MAX_SEISMIC_LOG_GROUP_ID)
+				{
+					seismic_log_group_id=1;
+				}
+				storage_write_last_seismic_log_group_id_to_flash(seismic_log_group_id);
+
+			}
+
 			uint8_t temp_H=accelerometer_spi_read_single(ADXL362_REG_TEMP_H);
 			uint8_t temp_L=accelerometer_spi_read_single(ADXL362_REG_TEMP_L);
 			uint16_t seismic_log_group_id_value = seismic_log_group_id;
@@ -153,50 +155,25 @@ void storage_read_bytes(uint32_t flash_chip_address,uint8_t * buffer,uint16_t le
 
 void storage_enter_deep_sleep_mode()
 {
-	//return;
-	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
-		0x79
-	}, 1);
-
-
+	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {0x79}, 1);
 	storage_mini_delay();
 }
 
 void storage_resume_deep_sleep_mode()
 {
-	//return;
-	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
-		0xAB
-	}, 1);
-
-
+	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {0xAB}, 1);
 	storage_mini_delay();
-
-
 }
-
 
 void storage_format_flash_chip()
 {
-	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
-		0xC7,
-		0x94,
-		0x80,
-		0x9A,
-	}, 4);
-
+	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {0xC7,0x94,0x80,0x9A}, 4);
 	storage_wait_until_flash_available();
 }
 
 void storage_use_256_byte_page()
 {
-	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
-		0x3D,
-		0x2A,
-		0x80,
-		0xA6,
-	}, 4);
-
+	spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {0x3D,0x2A,0x80,0xA6}, 4);
 	storage_wait_until_flash_available();
 }
 
@@ -219,7 +196,7 @@ static void storage_increase_next_page_value(uint32_t page_address)
 
 }
 
-static void storage_write_next_page_to_flash(uint32_t next_page_addr){
+void storage_write_next_page_to_flash(uint32_t next_page_addr){
 	storage_write_bytes(STORAGE_FLASH_CHIP_ADDR_NEXT_PAGE,(uint8_t[])  {
 			next_page_addr & 0xFF,
 			next_page_addr>>8 & 0xFF,
@@ -274,9 +251,9 @@ void storage_erase_sector(uint8_t sector)
 	{
 		spi_service_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {
 					0x7C,
-					0x80,
-					0x0F,
-					0xFF,
+					0x00,
+					0x08,
+					0x06,
 				}, 4);
 	}
 	storage_wait_until_flash_available();

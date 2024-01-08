@@ -116,7 +116,7 @@ ErrorStatus spi_service_init(uint32_t baudrate) {
 	
 	
 	/* Configure CS pins */
-	GPIO_InitStructure.GPIO_Pin = SPI_PERIPH_PIN_ADXL | SPI_PERIPH_PIN_FLASH | SPI_PERIPH_PIN_CLOCK;
+	GPIO_InitStructure.GPIO_Pin = SPI_PERIPH_PIN_ADXL | SPI_PERIPH_PIN_FLASH | SPI_PERIPH_PIN_CLOCK| GPIO_Pin_6;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Output;
 	GPIO_Init(&GPIO_InitStructure);
 

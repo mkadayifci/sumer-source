@@ -39,7 +39,7 @@ void scribe_stop(void)
 void scribe_stop_without_cooldown(void)
 {
 	scribe_stop();
-	cooldown_start_time-=SCRIBE_COOLDOWN_PERIOD_IN_SEC;
+	cooldown_start_time-=SCRIBE_COOLDOWN_PERIOD_IN_SEC-10;
 }
 
 
@@ -80,8 +80,11 @@ void scribe_tick(void)
 			APP_FLAG_CLEAR(SCRIBE_COOLDOWN);
 			if(state_manager_is_scribe_mode_enabled()==1)
 			{
-				APP_FLAG_SET(WAITING_FOR_ACTIVITY);
-				accelerometer_sleep_and_enable_interrupt();
+				if(!APP_FLAG(CONNECTED))
+				{
+					APP_FLAG_SET(WAITING_FOR_ACTIVITY);
+					accelerometer_sleep_and_enable_interrupt();
+				}
 			}
 		}
 	}

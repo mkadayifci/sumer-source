@@ -31,6 +31,7 @@
 #include "flash_service.h"
 #include "state_manager.h"
 #include "accelerometer.h"
+#include "scribe.h"
 
 /* External variables --------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
@@ -328,8 +329,8 @@ void hci_le_connection_complete_event(uint8_t Status,
 
   APP_FLAG_SET(CONNECTED);
   accelerometer_disable_activity_interrupt();
-  APP_FLAG_CLEAR(WAITING_FOR_ACTIVITY);
 
+  scribe_stop_without_cooldown();
   storage_resume_deep_sleep_mode();
 
 #if REQUEST_CONN_PARAM_UPDATE
@@ -361,7 +362,7 @@ void hci_disconnection_complete_event(uint8_t Status,
 	APP_FLAG_CLEAR(END_READ_RX_CHAR_HANDLE);
 	state_manager_commit_to_flash();
 	if (state_manager_is_scribe_mode_enabled() == 1) {
-		APP_FLAG_SET(WAITING_FOR_ACTIVITY);
+
 		accelerometer_sleep_and_enable_interrupt();
 	}
 	storage_enter_deep_sleep_mode();
