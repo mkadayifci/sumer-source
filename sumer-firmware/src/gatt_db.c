@@ -5,9 +5,9 @@
 #include "ble_const.h"
 #include "bluenrg1_stack.h"
 #include "osal.h"
-#include "app_state.h"
 #include "SDK_EVAL_Config.h"
 #include "serial_port.h"
+#include "sumer_firmware.h"
 
 uint16_t SerialPortServHandle, TXCharHandle, RXCharHandle;
 
@@ -86,7 +86,10 @@ void Attribute_Modified_CB(uint16_t handle, uint16_t data_length, uint8_t *att_d
 	} else if (handle == TXCharHandle + 2) {
 
 		if (att_data[0] == 0x01)
-			APP_FLAG_SET(NOTIFICATIONS_ENABLED);
+		{
+			sumer_firmware_set_state_flag(SUMER_FIRMWARE_STATE_BLE_NOTIFICATIONS_ENABLED);
+		}
+
 	}
 
 }

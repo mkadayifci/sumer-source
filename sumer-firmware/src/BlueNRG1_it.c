@@ -22,19 +22,15 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include <debug_functions.h>
+
 #include "BlueNRG1_it.h"
 #include "BlueNRG1_conf.h"
 #include "ble_const.h"
 #include "bluenrg1_stack.h"
+#include "interrupt_manager.h"
+#include "inertial_sensor.h"
+#include "sumer_firmware.h"
 #include "clock.h"
-#include "Accelerometer.h"
-#include "SPI_Service.h"
-#include "scribe.h"
-#include "app_state.h"
-#include "flash_service.h"
-
-
 /** @addtogroup BlueNRG1_StdPeriph_Examples
   * @{
   */
@@ -99,13 +95,13 @@ void SysTick_Handler(void)
 }
 
 uint8_t io_interrupt_disabled_count=0;
-void disable_io_interrupts()
+void disable_io_interrupts(void)
 {
 	io_interrupt_disabled_count++;
 	NVIC_DisableIRQ(GPIO_IRQn);
 }
 
-void enable_io_interrupts()
+void enable_io_interrupts(void)
 {
 	if(io_interrupt_disabled_count==1){
 		NVIC_EnableIRQ(GPIO_IRQn);
@@ -116,61 +112,22 @@ void enable_io_interrupts()
 
 void GPIO_Handler(void)
 {
-
 	disable_io_interrupts();
 
-	if (GPIO_GetITStatusBit(GPIO_Pin_12) == SET) //Activity Detected
+	if (interrupt_manager_get_interrupt_pin_value(INTERRUPT_MANAGER_ACTIVITY_PIN) == SET) //Activity Detected
 	{
-		GPIO_EXTICmd(GPIO_Pin_12, DISABLE);
-		GPIO_ClearITPendingBit(GPIO_Pin_12);
-		if(!scribe_is_in_cooldown_period() && !scribe_is_in_scribe_mode()){
-			OnSeismicInterrupt();
-		}
+		interrupt_manager_set_mcu_interrupt_pin_state(INTERRUPT_MANAGER_ACTIVITY_PIN,DISABLE);
+		sumer_firmware_set_state_flag(SUMER_FIRMWARE_STATE_ACTIVITY_OCCURED);
 	}
-	if (GPIO_GetITStatusBit(GPIO_Pin_5) == SET)  //FIFO Watermark
-	{
-		GPIO_EXTICmd(GPIO_Pin_5, DISABLE);
-		GPIO_ClearITPendingBit(GPIO_Pin_5);
 
-		OnWatermarkInterrupt();
+	if (interrupt_manager_get_interrupt_pin_value(INTERRUPT_MANAGER_FIFO_WATERMARK_PIN) == SET)
+	{
+		interrupt_manager_set_mcu_interrupt_pin_state(INTERRUPT_MANAGER_FIFO_WATERMARK_PIN,DISABLE);
+		sumer_firmware_set_state_flag(SUMER_FIRMWARE_STATE_FIFO_OVERFLOW_OCCURED);
 	}
+
 	enable_io_interrupts();
 }
-
-
-
-void OnSeismicInterrupt(void){
-
-	accelerometer_disable_activity_interrupt();
-	accelerometer_clear_interrupt_bits();
-	scribe_start();
-
-	debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_MOVEMENT_DETECTED);
-}
-
-
-void OnWatermarkInterrupt(void){
-
-	if (scribe_is_log_window_over())
-	{
-		scribe_stop();
-	}
-	else
-	{
-		uint8_t fifo_samples_L=accelerometer_spi_read_single(ADXL362_REG_FIFO_L);
-		uint8_t fifo_samples_H=accelerometer_spi_read_single(ADXL362_REG_FIFO_H);
-		uint16_t fif_samples_count=(uint16_t)fifo_samples_H << 8 | fifo_samples_L;
-
-		if(fif_samples_count>=256){
-			scribe_write_seismic_activity_page();
-		}
-		GPIO_EXTICmd(GPIO_Pin_5, ENABLE);
-	}
-
-	//debug(MESSAGE_LEVEL_INFO, DEBUG_ACCELEROMETER_CATEGORY, DEBUG_ACC_FIFO_WATERMARK);
-}
-
-
 
 /******************************************************************************/
 /*                 BlueNRG-1 Peripherals Interrupt Handlers                   */

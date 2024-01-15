@@ -30,6 +30,8 @@
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 
+void disable_io_interrupts(void);
+void enable_io_interrupts(void);
 void NMI_Handler(void);
 void HardFault_Handler(void);
 void SVC_Handler(void);

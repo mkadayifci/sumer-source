@@ -32,9 +32,10 @@ NOTEs:
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include "accelerometer.h"
+
 #include <stdio.h>
 #include <string.h>
+#include <sumer_firmware.h>
 #include <Sumer_config.h>
 #include "BlueNRG1_it.h"
 #include "BlueNRG1_conf.h"
@@ -42,18 +43,19 @@ NOTEs:
 #include "bluenrg1_stack.h"
 #include "sleep.h"
 #include "OTA_btl.h"
-#include "SPI_Service.h"
+
 #include "serial_port.h"
 #include "clock.h"
-#include "sumer_clock.h"
-#include "scribe.h"
+
 #include "command_processor.h"
 #include "OTA_btl.h"
-#include "flash_service.h"
 #include "local_settings.h"
-#include "app_state.h"
 #include "state_manager.h"
 
+#include "sumer_spi_driver.h"
+#include "omega_speedmaster.h"
+#include "flash_storage.h"
+#include "inertial_sensor.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -95,14 +97,12 @@ void Radio_Init(){
 void APP_Tick(void)
 {
 
-	if (APP_FLAG(SET_CONNECTABLE)) {
+	if (sumer_firmware_check_state_flag(SUMER_FIRMWARE_STATE_BLE_MAKE_CONNECTABLE))
+	{
 		Make_Connection();
-		APP_FLAG_CLEAR(SET_CONNECTABLE);
+		sumer_firmware_clear_state_flag(SUMER_FIRMWARE_STATE_BLE_MAKE_CONNECTABLE);
 	}
 
-	flush_ble_serial_buffer();
-	command_processor_parse_buffer();
-	scribe_tick();
 #if REQUEST_CONN_PARAM_UPDATE
   if(APP_FLAG(CONNECTED) && !APP_FLAG(L2CAP_PARAM_UPD_SENT) && Timer_Expired(&l2cap_req_timer))
   {
@@ -117,18 +117,19 @@ void APP_Tick(void)
 void InitializeAllSystems(void){
 	SystemInit();
 	Clock_Init();
-	spi_service_init(SUMER_SPI_BAUDRATE);
-	sumer_clock_init();
-	accelerometer_init();
-	storage_resume_deep_sleep_mode();
+	sumer_firmware_set_state_flag(SUMER_FIRMWARE_STATE_BLE_MAKE_CONNECTABLE);
+	sumer_spi_driver_init(SUMER_SPI_BAUDRATE);
+	omega_speedmaster_init();
+	inertial_sensor_init();
+	flash_storage_exit_deep_sleep_mode();
 	state_manager_initialize();
+	sumer_firmware_init();
 	Radio_Init();
 	if(state_manager_is_scribe_mode_enabled())
 	{
-		APP_FLAG_SET(WAITING_FOR_ACTIVITY);
-		accelerometer_sleep_and_enable_interrupt();
+		sumer_firmware_set_activity_detection_mode(ENABLE);
 	}
-	storage_enter_deep_sleep_mode();
+	flash_storage_enter_deep_sleep_mode();
 }
 
 int main(void)
@@ -137,18 +138,19 @@ int main(void)
 
  	while (1)
  	{
+ 		sumer_firmware_tick();
+ 		APP_Tick();
+ 		BTLE_StackTick();
+		BlueNRG_Sleep(SLEEPMODE_NOTIMER, WAKEUP_IO12, (WAKEUP_IOx_HIGH << WAKEUP_IO12_SHIFT_MASK) );
+
+ 		/* OLDDDD
  		if(APP_FLAG(SCRIBE_MODE)|| APP_FLAG(SCRIBE_COOLDOWN)){
  			GPIO_SetBits(GPIO_Pin_6);
  		}
  		else{
  			GPIO_ResetBits(GPIO_Pin_6);
  		}
-
-
-
-		APP_Tick();
- 		BTLE_StackTick();
-		BlueNRG_Sleep(SLEEPMODE_NOTIMER, WAKEUP_IO12, (WAKEUP_IOx_HIGH << WAKEUP_IO12_SHIFT_MASK) );
+		*/
 	}
 }
 
@@ -172,8 +174,14 @@ SleepModes App_SleepMode_Check(SleepModes sleepMode)
 {
 	//return SLEEPMODE_RUNNING;
 
-	if (APP_FLAG(SCRIBE_MODE)||APP_FLAG(CONNECTED) )
+
+
+
+	if(	sumer_firmware_check_state_flag(SUMER_FIRMWARE_STATE_ACTIVITY_OCCURED|SUMER_FIRMWARE_STATE_FIFO_OVERFLOW_OCCURED|SUMER_FIRMWARE_STATE_BLE_CONNECTED|SUMER_FIRMWARE_STATE_SCRIBE|SUMER_FIRMWARE_STATE_SCRIBE_COOLDOWN ) )
+	{
 		return SLEEPMODE_RUNNING;
+	}
+
   
 	return SLEEPMODE_NOTIMER;
 }
