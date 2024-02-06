@@ -61,7 +61,7 @@ typedef struct {
 #define COMMAND_RESET_DEVICE					0x5E
 
 #define FIRMWARE_VERSION_MAJOR	 	0x01
-#define FIRMWARE_VERSION_MINOR		0x06
+#define FIRMWARE_VERSION_MINOR		0x14
 
 void command_processor_sesimic_log_detail_response(uint8_t * receiveBuffer);
 void command_processor_fill_seismic_log_metadata(log_metadata_t * seismic_log_metadata_array);

@@ -118,6 +118,7 @@ void GPIO_Handler(void)
 	{
 		interrupt_manager_set_mcu_interrupt_pin_state(INTERRUPT_MANAGER_ACTIVITY_PIN,DISABLE);
 		sumer_firmware_set_state_flag(SUMER_FIRMWARE_STATE_ACTIVITY_OCCURED);
+		inertial_sensor_enable_fifo_stream();
 	}
 
 	if (interrupt_manager_get_interrupt_pin_value(INTERRUPT_MANAGER_FIFO_WATERMARK_PIN) == SET)

@@ -28,7 +28,6 @@
 #define FLASH_STORAGE_DEFAULTS_ACTIVITY_TIME_VAL			0x5; 	//5 samples
 
 
-//TODO:SEISMIC_LOG_GROUP_ID max 2^31 değer alacak. MSB 1 ise başlangıç sayfası olduğu anlaşılacak. Bütün işlemlerde artık ID kullanılacak. Dönüşümü yapmam lazım
 
 #define FLASH_STORAGE_OPCODE_WRITE_BUFFER1_WITHOUT_ERASE		0x02
 #define FLASH_STORAGE_OPCODE_WRITE_BUFFER1_WITH_ERASE			0x82

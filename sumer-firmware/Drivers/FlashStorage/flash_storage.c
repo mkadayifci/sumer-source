@@ -10,13 +10,13 @@
 void flash_storage_enter_deep_sleep_mode(void)
 {
 	sumer_spi_driver_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {0x79}, 1);
-	flash_storage_mini_delay();
+	flash_storage_delay();
 }
 
 void flash_storage_exit_deep_sleep_mode(void)
 {
 	sumer_spi_driver_write(SPI_DEVICE_ID_FLASH, (uint8_t[]) {0xAB}, 1);
-	flash_storage_mini_delay();
+	flash_storage_delay();
 }
 
 void flash_storage_wait_until_flash_available(void)

@@ -17,12 +17,14 @@ typedef struct
 {
 	uint32_t scribe_start_time;
 	uint32_t cooldown_start_time;
+	uint8_t is_first_page;
 } scriber_state_t;
 
 
 
 void sumer_scriber_start(void);
 void sumer_scriber_stop(void);
+void sumer_scriber_stop_without_cooldown(void);
 void sumer_scriber_write_log_page(void);
 uint8_t sumer_scriber_is_in_cooldown_period(void);
 uint8_t sumer_scriber_is_log_window_over(void);

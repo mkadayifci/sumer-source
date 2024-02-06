@@ -468,8 +468,8 @@ void command_processor_sesimic_log_mode_response(void) {
 void command_processor_send_seismic_demo_response(void)
 {
 
-	inertial_sensor_set_register(ADXL362_REG_FILTER_CTL, inertial_sensor_get_filter_controls(ODR_100, 0x01, RANGE_2G));
-	inertial_sensor_set_register(ADXL362_REG_POWER_CTL, inertial_sensor_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_ULTRALOW));
+	//inertial_sensor_set_register(ADXL362_REG_FILTER_CTL, inertial_sensor_get_filter_controls(ODR_100, 0x01, RANGE_2G));
+	//inertial_sensor_set_register(ADXL362_REG_POWER_CTL, inertial_sensor_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_ULTRALOW));
 
 	for(int i = 0;i<1500;i++){
 		uint8_t x_data_H=inertial_sensor_get_register(ADXL362_REG_XDATA_H);

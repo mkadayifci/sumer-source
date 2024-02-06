@@ -17,7 +17,7 @@
 static volatile sumer_firmware_state_object_t sumer_state_object={0};
 
 
-sumer_firmware_state_object_t * sumer_firmware_get_state_object(void)
+volatile sumer_firmware_state_object_t * sumer_firmware_get_state_object(void)
 {
 	return &sumer_state_object;
 }
@@ -48,8 +48,8 @@ void sumer_firmware_set_activity_detection_mode(FunctionalState state)
 {
 	if(state==ENABLE)
 	{
-		interrupt_manager_set_mcu_interrupt_pin_state(INTERRUPT_MANAGER_ACTIVITY_PIN,ENABLE);
 		inertial_sensor_sleep_and_enable_interrupt();
+		interrupt_manager_set_mcu_interrupt_pin_state(INTERRUPT_MANAGER_ACTIVITY_PIN,ENABLE);
 		sumer_firmware_set_state_flag(SUMER_FIRMWARE_STATE_WAITING_FOR_ACTIVITY);
 	}
 	else if(state==DISABLE)
@@ -92,7 +92,7 @@ static void sumer_firmware_do_fifo_overflow_checks(void)
 		sumer_scriber_write_log_page_from_inertial_sensor_fifo();
 		if(!sumer_scriber_is_log_window_over()){
 			interrupt_manager_set_mcu_interrupt_pin_state(INTERRUPT_MANAGER_FIFO_WATERMARK_PIN,ENABLE);
-			inertial_sensor_enable_fifo_stream();
+			//inertial_sensor_enable_fifo_stream();
 		}
 	}
 }

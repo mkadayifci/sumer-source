@@ -18,7 +18,7 @@
 
 static scriber_state_t sumer_scriber_state={0};
 
-static volatile uint8_t scribe_accelerometer_FIFO_buffer[256];
+
 
 scriber_state_t * sumer_scriber_get_state(void)
 {
@@ -28,13 +28,20 @@ scriber_state_t * sumer_scriber_get_state(void)
 void sumer_scriber_start(void)
 {
 	interrupt_manager_set_mcu_interrupt_pin_state(INTERRUPT_MANAGER_FIFO_WATERMARK_PIN,ENABLE);
-	inertial_sensor_enable_fifo_stream();
+	//	inertial_sensor_enable_fifo_stream();
 	sumer_firmware_set_state_flag(SUMER_FIRMWARE_STATE_SCRIBE);
 	sumer_firmware_get_state_object()->waiting_to_write_first_page=SET;
 	sumer_scriber_state.scribe_start_time=omega_speedmaster_get_epoch();
+	sumer_scriber_state.is_first_page=SET;
 
 }
 
+
+void sumer_scriber_stop_without_cooldown(void)
+{
+	sumer_scriber_stop();
+	sumer_scriber_state.cooldown_start_time -= (SUMER_SCRIBER_COOLDOWN_PERIOD_IN_SEC * 2);
+}
 
 void sumer_scriber_stop(void)
 {
@@ -78,14 +85,30 @@ static void sumer_scriber_set_whole_metadata(uint32_t page_address_to_write)
 
 void sumer_scriber_write_log_page_from_inertial_sensor_fifo(void)
 {
+	uint8_t scribe_accelerometer_FIFO_buffer[256];
 	uint16_t fifo_samples_count=inertial_sensor_get_waiting_fifo_records_lenght();
 	if(fifo_samples_count>=256)
 	{
 		inertial_sensor_read_FIFO((uint8_t * )&scribe_accelerometer_FIFO_buffer, 256);
-		uint32_t page_address_to_write =sumer_scriber_get_next_page_address_from_flash();
-		flash_storage_write_page(page_address_to_write,(uint8_t * )&scribe_accelerometer_FIFO_buffer);
-		sumer_scriber_set_whole_metadata(page_address_to_write);
-		sumer_scriber_increase_next_page_address(page_address_to_write);
+		uint8_t is_false_positive=RESET;
+		if(sumer_scriber_state.is_first_page)
+		{
+			sumer_scriber_state.is_first_page=RESET;
+			is_false_positive=sumer_scriber_apply_false_positive_filter((uint8_t * )&scribe_accelerometer_FIFO_buffer, 256);
+
+		}
+
+		if(is_false_positive)
+		{
+			sumer_scriber_stop();
+		}
+		else
+		{
+			uint32_t page_address_to_write =sumer_scriber_get_next_page_address_from_flash();
+			flash_storage_write_page(page_address_to_write,(uint8_t * )&scribe_accelerometer_FIFO_buffer);
+			sumer_scriber_set_whole_metadata(page_address_to_write);
+			sumer_scriber_increase_next_page_address(page_address_to_write);
+		}
 	}
 }
 
@@ -206,6 +229,7 @@ void sumer_scriber_get_page_metadata_by_page_address(uint32_t page_address,uint8
 
 uint8_t volatile sumer_scriber_apply_false_positive_filter(uint8_t * pBuffer, uint16_t length)
 {
+	return 0;
 	int16_t current_x;
 	int16_t current_y;
 	int16_t current_z;

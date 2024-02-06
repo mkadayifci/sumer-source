@@ -100,6 +100,7 @@ typedef struct
 void inertial_sensor_delay(void);
 void inertial_sensor_init(void);
 void inertial_sensor_reset(void);
+void inertial_sensor_clear_fifo(void);
 uint8_t inertial_sensor_get_filter_controls(enum ADXL_ODR_VALUES odr, uint8_t half_bw, enum ADXL_RANGES range);
 uint8_t inertial_sensor_get_power_controls(enum ADXL_MODES mode, uint8_t autosleep, uint8_t wakeup, enum ADXL_NOISE_MODES noise_mode);
 

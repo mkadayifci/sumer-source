@@ -178,7 +178,7 @@ void flush_ble_serial_buffer(void)
 
 void start_advertising(void){
 
-	uint16_t interval_in_ms= 5000;
+	uint16_t interval_in_ms= 10000;
 	uint8_t * local_name = state_manager_server_local_name();
 	aci_gap_set_discoverable(ADV_IND, interval_in_ms / 0.625, interval_in_ms / 0.625, PUBLIC_ADDR, NO_WHITE_LIST_USE,
 	                                11, local_name, 0, NULL, 0, 0);

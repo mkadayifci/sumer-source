@@ -37,7 +37,7 @@ typedef struct{
 	uint8_t waiting_to_write_first_page;
 } sumer_firmware_state_object_t;
 
-sumer_firmware_state_object_t * sumer_firmware_get_state_object(void);
+volatile sumer_firmware_state_object_t * sumer_firmware_get_state_object(void);
 void sumer_firmware_set_state_flag(uint32_t flag);
 void sumer_firmware_clear_state_flag(uint32_t flag);
 uint8_t sumer_firmware_check_state_flag(uint32_t flag);
