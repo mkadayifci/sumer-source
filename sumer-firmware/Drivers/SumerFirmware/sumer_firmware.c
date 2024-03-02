@@ -13,6 +13,7 @@
 #include "sumer_scriber.h"
 #include "state_manager.h"
 #include "serial_port.h"
+#include "clock.h"
 
 static volatile sumer_firmware_state_object_t sumer_state_object={0};
 
@@ -92,19 +93,56 @@ static void sumer_firmware_do_fifo_overflow_checks(void)
 		sumer_scriber_write_log_page_from_inertial_sensor_fifo();
 		if(!sumer_scriber_is_log_window_over()){
 			interrupt_manager_set_mcu_interrupt_pin_state(INTERRUPT_MANAGER_FIFO_WATERMARK_PIN,ENABLE);
-			//inertial_sensor_enable_fifo_stream();
 		}
 	}
 }
+
+
+tClockTime checkCycleIsPassedVal=0;
+
+static uint8_t sumer_firmware_check_cycles_passed()
+{
+	//TODO: Check for bullet proof
+
+	if(Clock_Time()>checkCycleIsPassedVal)
+	{
+		checkCycleIsPassedVal=Clock_Time()+SUMER_FIRMWARE_WAIT_CYCLES_BEFORE_WINDOW_CHECK;
+		return SET;
+	}
+	return RESET;
+}
+
+
+
+
+/*
+tClockTime lastCheckCyclesStart=0;
+static uint8_t sumer_firmware_check_cycles_passed_ex(uint32_t cycles)
+{
+	//TODO: Check for bullet proof
+	uint32_t currentTime =Clock_Time();
+	uint32_t diff = currentTime >lastCheckCyclesStart ? currentTime -lastCheckCyclesStart:lastCheckCyclesStart-currentTime;
+	if(diff>cycles)
+	{
+		lastCheckCyclesStart= Clock_Time();
+		return SET;
+	}
+
+	return RESET;
+}
+*/
 
 static void sumer_firmware_do_scribe_checks(void)
 {
 	if(sumer_firmware_check_state_flag(SUMER_FIRMWARE_STATE_SCRIBE))
 	{
-		if(sumer_scriber_is_log_window_over())
+		if(sumer_firmware_check_cycles_passed())
 		{
-			sumer_scriber_stop();
-			flash_storage_enter_deep_sleep_mode();
+			if(sumer_scriber_is_log_window_over())
+			{
+				sumer_scriber_stop();
+				flash_storage_enter_deep_sleep_mode();
+			}
 		}
 	}
 }

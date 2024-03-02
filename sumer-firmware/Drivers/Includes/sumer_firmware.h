@@ -11,7 +11,7 @@
 #include "stdint.h"
 #include "hal_types.h"
 
-
+#define SUMER_FIRMWARE_WAIT_CYCLES_BEFORE_WINDOW_CHECK			0x1F4
 
 #define SUMER_FIRMWARE_STATE_BLE_CONNECTED 						0x000001
 #define SUMER_FIRMWARE_STATE_BLE_MAKE_CONNECTABLE 				0x000002
@@ -48,6 +48,7 @@ static void sumer_firmware_do_cooldown_checks(void);
 static void sumer_firmware_do_scribe_checks(void);
 static void sumer_firmware_do_fifo_overflow_checks(void);
 static void sumer_firmware_do_activity_occured_checks(void);
+static uint8_t sumer_firmware_check_cycles_passed();
 
 #endif /* SUMER_FIRMWARE_H_ */
 

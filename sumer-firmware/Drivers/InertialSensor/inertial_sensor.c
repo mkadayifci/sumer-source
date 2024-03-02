@@ -104,20 +104,14 @@ void inertial_sensor_enable_fifo_stream(void) {
 	inertial_sensor_set_register(ADXL362_REG_FIFO_CTL, FIFO_CONTROL_STREAM_AND_SAMPLE_HIGH_BIT);
 	inertial_sensor_set_register(ADXL362_REG_FIFO_SAMPLES, 0x00); // We set 9.bit to 1 in fifo_control and these 8bits to 0. At the end we set 256 to watermark interrupt
 	inertial_sensor_set_register(ADXL362_REG_INTMAP2,	INTMAP2_ONLY_FIFO_WATERMARK);
-	//inertial_sensor_set_register(ADXL362_REG_FILTER_CTL, inertial_sensor_get_filter_controls(ODR_400, 0x01, RANGE_2G));
-	//inertial_sensor_set_register(ADXL362_REG_POWER_CTL, inertial_sensor_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00,	ADXL_NOISE_MODE_ULTRALOW));
 	inertial_sensor_clear_interrupt_bits();
 
 }
 
 void inertial_sensor_disable_fifo_stream(void)
 {
-	//inertial_sensor_set_register(ADXL362_REG_FIFO_CTL,0x08);
 	inertial_sensor_set_register(ADXL362_REG_FIFO_CTL, FIFO_CONTROL_STREAM_AND_SAMPLE_HIGH_BIT);
 	inertial_sensor_set_register(ADXL362_REG_INTMAP2,0x00);
-	//inertial_sensor_set_register(ADXL362_REG_FILTER_CTL, inertial_sensor_get_filter_controls(ODR_400, 0x01, RANGE_2G));
-	//inertial_sensor_set_register(ADXL362_REG_POWER_CTL, inertial_sensor_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_ULTRALOW));
-	//inertial_sensor_clear_fifo();
 	inertial_sensor_clear_interrupt_bits();
 	GPIO_ClearITPendingBit(GPIO_Pin_5);
 	GPIO_EXTICmd(GPIO_Pin_5, DISABLE);
@@ -126,8 +120,6 @@ void inertial_sensor_disable_fifo_stream(void)
 
 void  inertial_sensor_sleep_and_enable_interrupt(void)
 {
-	//inertial_sensor_set_register(ADXL362_REG_FILTER_CTL, inertial_sensor_get_filter_controls(ODR_400, 0x01, RANGE_2G));
-	//inertial_sensor_set_register(ADXL362_REG_POWER_CTL, inertial_sensor_get_power_controls(ADXL_MODE_MEASURE, 0x00, 0x00, ADXL_NOISE_MODE_ULTRALOW));
 	inertial_sensor_set_register(ADXL362_REG_THRESH_ACT_L,state_manager_activity_threshold_low());
 	inertial_sensor_set_register(ADXL362_REG_THRESH_ACT_H,0x00);
 	inertial_sensor_set_register(ADXL362_REG_TIME_ACT,state_manager_activity_time());
@@ -136,9 +128,6 @@ void  inertial_sensor_sleep_and_enable_interrupt(void)
 	inertial_sensor_get_register(ADXL362_REG_STATUS);
 
 }
-
-
-
 
 void inertial_sensor_read_FIFO(uint8_t* pBuffer,uint16_t length)
 {
